@@ -48,7 +48,8 @@ app.use((req: Request, res: Response, next: NextFunction) => {
 })
 
 // Servir arquivos estáticos (uploads)
-app.use('/uploads', express.static(path.join(__dirname, '../uploads')))
+// Em produção: __dirname = /app/dist/server/api, então ../../../uploads = /app/uploads
+app.use('/uploads', express.static(path.join(__dirname, '../../../uploads')))
 
 /**
  * API Routes
@@ -68,11 +69,12 @@ app.use(
   },
 )
 
-// Serving do Frontend React em Prod (mantenha como está)
+// Serving do Frontend React em Prod
+// Em produção: __dirname = /app/dist/server/api, então ../.. = /app/dist
 if (process.env.NODE_ENV === 'production') {
-  app.use(express.static(path.join(__dirname, '../dist')));
+  app.use(express.static(path.join(__dirname, '../..')));
   app.get('*', (req: Request, res: Response) => {
-    res.sendFile(path.join(__dirname, '../dist/index.html'));
+    res.sendFile(path.join(__dirname, '../../index.html'));
   });
 }
 
