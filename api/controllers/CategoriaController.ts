@@ -1,5 +1,5 @@
 import { Request, Response } from 'express';
-import { Categoria } from '../models/Categoria.ts';
+import { Categoria } from '../models/Categoria.js';
 import mongoose from 'mongoose';
 
 export class CategoriaController {

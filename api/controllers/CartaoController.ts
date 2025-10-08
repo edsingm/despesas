@@ -1,5 +1,5 @@
 import { Request, Response } from 'express';
-import { Cartao } from '../models/Cartao.ts';
+import { Cartao } from '../models/Cartao.js';
 import mongoose from 'mongoose';
 
 export class CartaoController {

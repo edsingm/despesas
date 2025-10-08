@@ -1,5 +1,5 @@
 import mongoose from 'mongoose';
-import { Categoria } from '../models/Categoria.ts';
+import { Categoria } from '../models/Categoria.js';
 
 /**
  * Cria dados padrão (categorias) para um usuário recém-criado.

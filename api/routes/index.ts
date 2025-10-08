@@ -1,11 +1,11 @@
 import { Router } from 'express';
-import authRoutes from './auth.ts';
-import categoriasRoutes from './categorias.ts';
-import bancosRoutes from './bancos.ts';
-import cartoesRoutes from './cartoes.ts';
-import receitasRoutes from './receitas.ts';
-import despesasRoutes from './despesas.ts';
-import dashboardRoutes from './dashboard.ts';
+import authRoutes from './auth.js';
+import categoriasRoutes from './categorias.js';
+import bancosRoutes from './bancos.js';
+import cartoesRoutes from './cartoes.js';
+import receitasRoutes from './receitas.js';
+import despesasRoutes from './despesas.js';
+import dashboardRoutes from './dashboard.js';
 
 const router = Router();
 

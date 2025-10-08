@@ -1,6 +1,6 @@
 import mongoose from 'mongoose';
-import { Cartao } from '../models/Cartao.ts';
-import { Despesa } from '../models/Despesa.ts';
+import { Cartao } from '../models/Cartao.js';
+import { Despesa } from '../models/Despesa.js';
 import 'dotenv/config';
 
 /**

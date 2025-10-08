@@ -1,8 +1,8 @@
 import { Router } from 'express';
-import { BancoController } from '../controllers/BancoController.ts';
-import { authenticateToken } from '../middleware/auth.ts';
-import { validateBody, validateParams, validateQuery } from '../middleware/validation.ts';
-import { bancoSchemas, commonSchemas } from '../utils/validationSchemas.ts';
+import { BancoController } from '../controllers/BancoController.js';
+import { authenticateToken } from '../middleware/auth.js';
+import { validateBody, validateParams, validateQuery } from '../middleware/validation.js';
+import { bancoSchemas, commonSchemas } from '../utils/validationSchemas.js';
 import Joi from 'joi';
 
 const router = Router();

@@ -1,9 +1,9 @@
 import { Router } from 'express';
-import { DespesaController } from '../controllers/DespesaController.ts';
-import { authenticateToken } from '../middleware/auth.ts';
-import { validateBody, validateParams, validateQuery } from '../middleware/validation.ts';
-import { despesaSchemas, commonSchemas } from '../utils/validationSchemas.ts';
-import { uploadMiddleware, optionalUpload } from '../middleware/upload.ts';
+import { DespesaController } from '../controllers/DespesaController.js';
+import { authenticateToken } from '../middleware/auth.js';
+import { validateBody, validateParams, validateQuery } from '../middleware/validation.js';
+import { despesaSchemas, commonSchemas } from '../utils/validationSchemas.js';
+import { uploadMiddleware, optionalUpload } from '../middleware/upload.js';
 import Joi from 'joi';
 
 const router = Router();

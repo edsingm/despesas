@@ -1,8 +1,8 @@
 import { Router } from 'express';
-import { CartaoController } from '../controllers/CartaoController.ts';
-import { authenticateToken } from '../middleware/auth.ts';
-import { validateBody, validateParams, validateQuery } from '../middleware/validation.ts';
-import { cartaoSchemas, commonSchemas } from '../utils/validationSchemas.ts';
+import { CartaoController } from '../controllers/CartaoController.js';
+import { authenticateToken } from '../middleware/auth.js';
+import { validateBody, validateParams, validateQuery } from '../middleware/validation.js';
+import { cartaoSchemas, commonSchemas } from '../utils/validationSchemas.js';
 import Joi from 'joi';
 
 const router = Router();

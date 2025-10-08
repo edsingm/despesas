@@ -1,10 +1,10 @@
 import { Request, Response } from 'express';
-import { Receita } from '../models/Receita.ts';
-import { Banco } from '../models/Banco.ts';
+import { Receita } from '../models/Receita.js';
+import { Banco } from '../models/Banco.js';
 import mongoose from 'mongoose';
 import path from 'path';
 import fs from 'fs/promises';
-import { parseLocalDate } from '../utils/dateUtils.ts';
+import { parseLocalDate } from '../utils/dateUtils.js';
 
 export class ReceitaController {
   /**

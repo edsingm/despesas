@@ -1,12 +1,12 @@
 import mongoose from 'mongoose';
 import bcrypt from 'bcryptjs';
-import { User } from '../models/User.ts';
-import { Categoria } from '../models/Categoria.ts';
-import { Banco } from '../models/Banco.ts';
-import { Cartao } from '../models/Cartao.ts';
-import { Receita } from '../models/Receita.ts';
-import { Despesa } from '../models/Despesa.ts';
-import { connectDatabase } from '../config/database.ts';
+import { User } from '../models/User.js';
+import { Categoria } from '../models/Categoria.js';
+import { Banco } from '../models/Banco.js';
+import { Cartao } from '../models/Cartao.js';
+import { Receita } from '../models/Receita.js';
+import { Despesa } from '../models/Despesa.js';
+import { connectDatabase } from '../config/database.js';
 import dotenv from 'dotenv';
 
 dotenv.config();
