@@ -22,7 +22,9 @@ import {
 } from '../types';
 
 // Configuração base do axios
-const API_BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:3001/api';
+// Em produção usa URL relativa, em desenvolvimento usa localhost
+const API_BASE_URL = import.meta.env.VITE_API_URL || 
+  (import.meta.env.MODE === 'production' ? '/api' : 'http://localhost:3001/api');
 
 class ApiService {
   private api: AxiosInstance;
