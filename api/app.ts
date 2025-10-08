@@ -96,12 +96,4 @@ app.use((req: Request, res: Response) => {
   })
 })
 
-// Inicie o server (mantenha)
-if (require.main === module) {
-  const PORT = parseInt(process.env.PORT || '3000', 10);
-  app.listen(PORT, '0.0.0.0', () => {
-    console.log(`Server rodando na porta ${PORT} em ${process.env.NODE_ENV}`);
-  });
-}
-
 export default app
