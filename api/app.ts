@@ -34,7 +34,7 @@ const app: express.Application = express()
 // Middlewares globais
 app.use(cors({
   origin: process.env.NODE_ENV === 'production' 
-    ? ['https://despesas-app.seudominio.com']  // Ajuste pro seu domínio EasyPanel
+    ? ['https://despesas.halz.com.br', 'http://despesas.halz.com.br']
     : ['http://localhost:5173', 'http://localhost:3000'],
   credentials: true
 }))
