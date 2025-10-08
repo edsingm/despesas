@@ -1,0 +1,10 @@
+[phases.install]
+cmds = [
+  'NODE_ENV=development pnpm i --frozen-lockfile',  # Instala tudo (inclui devDeps pro build)
+]
+
+[phases.build]
+cmds = ['pnpm run build']
+
+[start]
+cmd = 'node dist/server.js'  # Ajuste pro seu entry point (ex: server.js após build)
