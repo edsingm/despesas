@@ -35,13 +35,13 @@ const initialState: ReceitaState = {
 // Async thunks
 export const fetchReceitas = createAsyncThunk(
   'receita/fetchReceitas',
-  async (params?: FiltroReceita, { rejectWithValue }) => {
+  async (params: FiltroReceita | undefined, { rejectWithValue }) => {
     try {
       const response = await receitaApi.getReceitas(params);
       if (response.success && response.data) {
         return response.data;
       }
-      return rejectWithValue(response.message || 'Erro ao buscar receitas');
+      return rejectWithValue('Erro ao buscar receitas');
     } catch (error: any) {
       return rejectWithValue(error.response?.data?.message || 'Erro ao buscar receitas');
     }
@@ -56,7 +56,7 @@ export const fetchReceitaById = createAsyncThunk(
       if (response.success && response.data) {
         return response.data;
       }
-      return rejectWithValue(response.message || 'Erro ao buscar receita');
+      return rejectWithValue('Erro ao buscar receita');
     } catch (error: any) {
       return rejectWithValue(error.response?.data?.message || 'Erro ao buscar receita');
     }
@@ -65,13 +65,13 @@ export const fetchReceitaById = createAsyncThunk(
 
 export const fetchEstatisticasReceitas = createAsyncThunk(
   'receita/fetchEstatisticasReceitas',
-  async (params?: { dataInicio?: string; dataFim?: string }, { rejectWithValue }) => {
+  async (params: { dataInicio?: string; dataFim?: string } | undefined, { rejectWithValue }) => {
     try {
       const response = await receitaApi.getEstatisticasReceitas(params);
       if (response.success && response.data) {
         return response.data;
       }
-      return rejectWithValue(response.message || 'Erro ao buscar estatísticas de receitas');
+      return rejectWithValue('Erro ao buscar estatísticas de receitas');
     } catch (error: any) {
       return rejectWithValue(error.response?.data?.message || 'Erro ao buscar estatísticas de receitas');
     }
@@ -86,7 +86,7 @@ export const fetchProximasRecorrentes = createAsyncThunk(
       if (response.success && response.data) {
         return response.data.receitas;
       }
-      return rejectWithValue(response.message || 'Erro ao buscar próximas receitas recorrentes');
+      return rejectWithValue('Erro ao buscar próximas receitas recorrentes');
     } catch (error: any) {
       return rejectWithValue(error.response?.data?.message || 'Erro ao buscar próximas receitas recorrentes');
     }
@@ -110,7 +110,7 @@ export const createReceita = createAsyncThunk(
       if (response.success && response.data) {
         return response.data;
       }
-      return rejectWithValue(response.message || 'Erro ao criar receita');
+      return rejectWithValue('Erro ao criar receita');
     } catch (error: any) {
       return rejectWithValue(error.response?.data?.message || 'Erro ao criar receita');
     }
@@ -134,7 +134,7 @@ export const updateReceita = createAsyncThunk(
       if (response.success && response.data) {
         return response.data;
       }
-      return rejectWithValue(response.message || 'Erro ao atualizar receita');
+      return rejectWithValue('Erro ao atualizar receita');
     } catch (error: any) {
       return rejectWithValue(error.response?.data?.message || 'Erro ao atualizar receita');
     }
@@ -149,7 +149,7 @@ export const deleteReceita = createAsyncThunk(
       if (response.success) {
         return id;
       }
-      return rejectWithValue(response.message || 'Erro ao deletar receita');
+      return rejectWithValue('Erro ao deletar receita');
     } catch (error: any) {
       return rejectWithValue(error.response?.data?.message || 'Erro ao deletar receita');
     }

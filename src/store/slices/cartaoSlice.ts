@@ -42,13 +42,13 @@ const initialState: CartaoState = {
 // Async thunks
 export const fetchCartoes = createAsyncThunk(
   'cartao/fetchCartoes',
-  async (params?: { ativo?: boolean; page?: number; limit?: number }, { rejectWithValue }) => {
+  async (params: { ativo?: boolean; page?: number; limit?: number } | undefined, { rejectWithValue }) => {
     try {
       const response = await cartaoApi.getCartoes(params);
       if (response.success && response.data) {
         return response.data;
       }
-      return rejectWithValue(response.message || 'Erro ao buscar cartões');
+      return rejectWithValue('Erro ao buscar cartões');
     } catch (error: any) {
       return rejectWithValue(error.response?.data?.message || 'Erro ao buscar cartões');
     }
@@ -63,7 +63,7 @@ export const fetchCartoesAtivos = createAsyncThunk(
       if (response.success && response.data) {
         return response.data.cartoes;
       }
-      return rejectWithValue(response.message || 'Erro ao buscar cartões ativos');
+      return rejectWithValue('Erro ao buscar cartões ativos');
     } catch (error: any) {
       return rejectWithValue(error.response?.data?.message || 'Erro ao buscar cartões ativos');
     }
@@ -78,7 +78,7 @@ export const fetchCartaoById = createAsyncThunk(
       if (response.success && response.data) {
         return response.data;
       }
-      return rejectWithValue(response.message || 'Erro ao buscar cartão');
+      return rejectWithValue('Erro ao buscar cartão');
     } catch (error: any) {
       return rejectWithValue(error.response?.data?.message || 'Erro ao buscar cartão');
     }
@@ -93,7 +93,7 @@ export const fetchLimiteConsolidado = createAsyncThunk(
       if (response.success && response.data) {
         return response.data.limiteDisponivel;
       }
-      return rejectWithValue(response.message || 'Erro ao buscar limite consolidado');
+      return rejectWithValue('Erro ao buscar limite consolidado');
     } catch (error: any) {
       return rejectWithValue(error.response?.data?.message || 'Erro ao buscar limite consolidado');
     }
@@ -108,7 +108,7 @@ export const fetchProximosVencimentos = createAsyncThunk(
       if (response.success && response.data) {
         return response.data.proximosVencimentos;
       }
-      return rejectWithValue(response.message || 'Erro ao buscar próximos vencimentos');
+      return rejectWithValue('Erro ao buscar próximos vencimentos');
     } catch (error: any) {
       return rejectWithValue(error.response?.data?.message || 'Erro ao buscar próximos vencimentos');
     }
@@ -123,7 +123,7 @@ export const createCartao = createAsyncThunk(
       if (response.success && response.data) {
         return response.data;
       }
-      return rejectWithValue(response.message || 'Erro ao criar cartão');
+      return rejectWithValue('Erro ao criar cartão');
     } catch (error: any) {
       return rejectWithValue(error.response?.data?.message || 'Erro ao criar cartão');
     }
@@ -138,7 +138,7 @@ export const updateCartao = createAsyncThunk(
       if (response.success && response.data) {
         return response.data;
       }
-      return rejectWithValue(response.message || 'Erro ao atualizar cartão');
+      return rejectWithValue('Erro ao atualizar cartão');
     } catch (error: any) {
       return rejectWithValue(error.response?.data?.message || 'Erro ao atualizar cartão');
     }
@@ -153,7 +153,7 @@ export const deleteCartao = createAsyncThunk(
       if (response.success) {
         return id;
       }
-      return rejectWithValue(response.message || 'Erro ao deletar cartão');
+      return rejectWithValue('Erro ao deletar cartão');
     } catch (error: any) {
       return rejectWithValue(error.response?.data?.message || 'Erro ao deletar cartão');
     }
@@ -168,7 +168,7 @@ export const fetchFaturaCartao = createAsyncThunk(
       if (response.success && response.data) {
         return response.data;
       }
-      return rejectWithValue(response.message || 'Erro ao buscar fatura do cartão');
+      return rejectWithValue('Erro ao buscar fatura do cartão');
     } catch (error: any) {
       return rejectWithValue(error.response?.data?.message || 'Erro ao buscar fatura do cartão');
     }

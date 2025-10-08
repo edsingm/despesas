@@ -43,13 +43,13 @@ const initialState: DespesaState = {
 // Async thunks
 export const fetchDespesas = createAsyncThunk(
   'despesa/fetchDespesas',
-  async (params?: FiltroDespesa, { rejectWithValue }) => {
+  async (params: FiltroDespesa | undefined, { rejectWithValue }) => {
     try {
       const response = await despesaApi.getDespesas(params);
       if (response.success && response.data) {
         return response.data;
       }
-      return rejectWithValue(response.message || 'Erro ao buscar despesas');
+      return rejectWithValue('Erro ao buscar despesas');
     } catch (error: any) {
       return rejectWithValue(error.response?.data?.message || 'Erro ao buscar despesas');
     }
@@ -64,7 +64,7 @@ export const fetchDespesaById = createAsyncThunk(
       if (response.success && response.data) {
         return response.data;
       }
-      return rejectWithValue(response.message || 'Erro ao buscar despesa');
+      return rejectWithValue('Erro ao buscar despesa');
     } catch (error: any) {
       return rejectWithValue(error.response?.data?.message || 'Erro ao buscar despesa');
     }
@@ -73,13 +73,13 @@ export const fetchDespesaById = createAsyncThunk(
 
 export const fetchEstatisticasDespesas = createAsyncThunk(
   'despesa/fetchEstatisticasDespesas',
-  async (params?: { dataInicio?: string; dataFim?: string }, { rejectWithValue }) => {
+  async (params: { dataInicio?: string; dataFim?: string } | undefined, { rejectWithValue }) => {
     try {
       const response = await despesaApi.getEstatisticasDespesas(params);
       if (response.success && response.data) {
         return response.data;
       }
-      return rejectWithValue(response.message || 'Erro ao buscar estatísticas de despesas');
+      return rejectWithValue('Erro ao buscar estatísticas de despesas');
     } catch (error: any) {
       return rejectWithValue(error.response?.data?.message || 'Erro ao buscar estatísticas de despesas');
     }
@@ -94,7 +94,7 @@ export const fetchProximasParcelasVencimento = createAsyncThunk(
       if (response.success && response.data) {
         return response.data.proximasParcelas;
       }
-      return rejectWithValue(response.message || 'Erro ao buscar próximas parcelas de vencimento');
+      return rejectWithValue('Erro ao buscar próximas parcelas de vencimento');
     } catch (error: any) {
       return rejectWithValue(error.response?.data?.message || 'Erro ao buscar próximas parcelas de vencimento');
     }
@@ -118,7 +118,7 @@ export const createDespesa = createAsyncThunk(
       if (response.success && response.data) {
         return response.data;
       }
-      return rejectWithValue(response.message || 'Erro ao criar despesa');
+      return rejectWithValue('Erro ao criar despesa');
     } catch (error: any) {
       return rejectWithValue(error.response?.data?.message || 'Erro ao criar despesa');
     }
@@ -142,7 +142,7 @@ export const updateDespesa = createAsyncThunk(
       if (response.success && response.data) {
         return response.data;
       }
-      return rejectWithValue(response.message || 'Erro ao atualizar despesa');
+      return rejectWithValue('Erro ao atualizar despesa');
     } catch (error: any) {
       return rejectWithValue(error.response?.data?.message || 'Erro ao atualizar despesa');
     }
@@ -151,18 +151,18 @@ export const updateDespesa = createAsyncThunk(
 
 export const updateStatusParcela = createAsyncThunk(
   'despesa/updateStatusParcela',
-  async ({ id, numeroParcela, pago, dataPagamento }: { 
-    id: string; 
-    numeroParcela: number; 
-    pago: boolean; 
-    dataPagamento?: string 
+  async ({ id, numeroParcela, paga, dataPagamento }: {
+    id: string;
+    numeroParcela: number;
+    paga: boolean;
+    dataPagamento?: string
   }, { rejectWithValue }) => {
     try {
-      const response = await despesaApi.updateStatusParcela(id, numeroParcela, { pago, dataPagamento });
+      const response = await despesaApi.updateStatusParcela(id, numeroParcela, { paga, dataPagamento });
       if (response.success && response.data) {
         return response.data;
       }
-      return rejectWithValue(response.message || 'Erro ao atualizar status da parcela');
+      return rejectWithValue('Erro ao atualizar status da parcela');
     } catch (error: any) {
       return rejectWithValue(error.response?.data?.message || 'Erro ao atualizar status da parcela');
     }
@@ -181,7 +181,7 @@ export const updateParcela = createAsyncThunk(
       if (response.success && response.data) {
         return response.data;
       }
-      return rejectWithValue(response.message || 'Erro ao atualizar parcela');
+      return rejectWithValue('Erro ao atualizar parcela');
     } catch (error: any) {
       return rejectWithValue(error.response?.data?.message || 'Erro ao atualizar parcela');
     }
@@ -196,7 +196,7 @@ export const deleteDespesa = createAsyncThunk(
       if (response.success) {
         return id;
       }
-      return rejectWithValue(response.message || 'Erro ao deletar despesa');
+      return rejectWithValue('Erro ao deletar despesa');
     } catch (error: any) {
       return rejectWithValue(error.response?.data?.message || 'Erro ao deletar despesa');
     }

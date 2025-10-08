@@ -35,13 +35,13 @@ const initialState: CategoriaState = {
 // Async thunks
 export const fetchCategorias = createAsyncThunk(
   'categoria/fetchCategorias',
-  async (params?: { tipo?: 'receita' | 'despesa'; ativa?: boolean; page?: number; limit?: number }, { rejectWithValue }) => {
+  async (params: { tipo?: 'receita' | 'despesa'; ativa?: boolean; page?: number; limit?: number } | undefined, { rejectWithValue }) => {
     try {
       const response = await categoriaApi.getCategorias(params);
       if (response.success && response.data) {
         return response.data;
       }
-      return rejectWithValue(response.message || 'Erro ao buscar categorias');
+      return rejectWithValue('Erro ao buscar categorias');
     } catch (error: any) {
       return rejectWithValue(error.response?.data?.message || 'Erro ao buscar categorias');
     }
@@ -56,7 +56,7 @@ export const fetchCategoriaById = createAsyncThunk(
       if (response.success && response.data) {
         return response.data;
       }
-      return rejectWithValue(response.message || 'Erro ao buscar categoria');
+      return rejectWithValue('Erro ao buscar categoria');
     } catch (error: any) {
       return rejectWithValue(error.response?.data?.message || 'Erro ao buscar categoria');
     }
@@ -71,7 +71,7 @@ export const createCategoria = createAsyncThunk(
       if (response.success && response.data) {
         return response.data;
       }
-      return rejectWithValue(response.message || 'Erro ao criar categoria');
+      return rejectWithValue('Erro ao criar categoria');
     } catch (error: any) {
       return rejectWithValue(error.response?.data?.message || 'Erro ao criar categoria');
     }
@@ -86,7 +86,7 @@ export const updateCategoria = createAsyncThunk(
       if (response.success && response.data) {
         return response.data;
       }
-      return rejectWithValue(response.message || 'Erro ao atualizar categoria');
+      return rejectWithValue('Erro ao atualizar categoria');
     } catch (error: any) {
       return rejectWithValue(error.response?.data?.message || 'Erro ao atualizar categoria');
     }
@@ -101,7 +101,7 @@ export const deleteCategoria = createAsyncThunk(
       if (response.success) {
         return id;
       }
-      return rejectWithValue(response.message || 'Erro ao deletar categoria');
+      return rejectWithValue('Erro ao deletar categoria');
     } catch (error: any) {
       return rejectWithValue(error.response?.data?.message || 'Erro ao deletar categoria');
     }
@@ -119,8 +119,8 @@ export const fetchCategoriasReceita = createAsyncThunk(
         console.log('[fetchCategoriasReceita] Categorias encontradas:', response.data.categorias?.length || 0);
         return response.data.categorias;
       }
-      console.error('[fetchCategoriasReceita] Erro:', response.message);
-      return rejectWithValue(response.message || 'Erro ao buscar categorias de receita');
+      console.error('[fetchCategoriasReceita] Erro: resposta não foi bem-sucedida');
+      return rejectWithValue('Erro ao buscar categorias de receita');
     } catch (error: any) {
       console.error('[fetchCategoriasReceita] Exceção:', error);
       return rejectWithValue(error.response?.data?.message || 'Erro ao buscar categorias de receita');
@@ -139,8 +139,8 @@ export const fetchCategoriasDespesa = createAsyncThunk(
         console.log('[fetchCategoriasDespesa] Categorias encontradas:', response.data.categorias?.length || 0);
         return response.data.categorias;
       }
-      console.error('[fetchCategoriasDespesa] Erro:', response.message);
-      return rejectWithValue(response.message || 'Erro ao buscar categorias de despesa');
+      console.error('[fetchCategoriasDespesa] Erro: resposta não foi bem-sucedida');
+      return rejectWithValue('Erro ao buscar categorias de despesa');
     } catch (error: any) {
       console.error('[fetchCategoriasDespesa] Exceção:', error);
       return rejectWithValue(error.response?.data?.message || 'Erro ao buscar categorias de despesa');

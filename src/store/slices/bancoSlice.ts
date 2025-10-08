@@ -35,13 +35,13 @@ const initialState: BancoState = {
 // Async thunks
 export const fetchBancos = createAsyncThunk(
   'banco/fetchBancos',
-  async (params?: { tipo?: string; ativo?: boolean; page?: number; limit?: number }, { rejectWithValue }) => {
+  async (params: { tipo?: string; ativo?: boolean; page?: number; limit?: number } | undefined, { rejectWithValue }) => {
     try {
       const response = await bancoApi.getBancos(params);
       if (response.success && response.data) {
         return response.data;
       }
-      return rejectWithValue(response.message || 'Erro ao buscar bancos');
+      return rejectWithValue('Erro ao buscar bancos');
     } catch (error: any) {
       return rejectWithValue(error.response?.data?.message || 'Erro ao buscar bancos');
     }
@@ -56,7 +56,7 @@ export const fetchBancosAtivos = createAsyncThunk(
       if (response.success && response.data) {
         return response.data.bancos;
       }
-      return rejectWithValue(response.message || 'Erro ao buscar bancos ativos');
+      return rejectWithValue('Erro ao buscar bancos ativos');
     } catch (error: any) {
       return rejectWithValue(error.response?.data?.message || 'Erro ao buscar bancos ativos');
     }
@@ -71,7 +71,7 @@ export const fetchBancoById = createAsyncThunk(
       if (response.success && response.data) {
         return response.data;
       }
-      return rejectWithValue(response.message || 'Erro ao buscar banco');
+      return rejectWithValue('Erro ao buscar banco');
     } catch (error: any) {
       return rejectWithValue(error.response?.data?.message || 'Erro ao buscar banco');
     }
@@ -86,7 +86,7 @@ export const fetchSaldoConsolidado = createAsyncThunk(
       if (response.success && response.data) {
         return response.data.saldoConsolidado;
       }
-      return rejectWithValue(response.message || 'Erro ao buscar saldo consolidado');
+      return rejectWithValue('Erro ao buscar saldo consolidado');
     } catch (error: any) {
       return rejectWithValue(error.response?.data?.message || 'Erro ao buscar saldo consolidado');
     }
@@ -101,7 +101,7 @@ export const createBanco = createAsyncThunk(
       if (response.success && response.data) {
         return response.data;
       }
-      return rejectWithValue(response.message || 'Erro ao criar banco');
+      return rejectWithValue('Erro ao criar banco');
     } catch (error: any) {
       return rejectWithValue(error.response?.data?.message || 'Erro ao criar banco');
     }
@@ -116,7 +116,7 @@ export const updateBanco = createAsyncThunk(
       if (response.success && response.data) {
         return response.data;
       }
-      return rejectWithValue(response.message || 'Erro ao atualizar banco');
+      return rejectWithValue('Erro ao atualizar banco');
     } catch (error: any) {
       return rejectWithValue(error.response?.data?.message || 'Erro ao atualizar banco');
     }
@@ -131,7 +131,7 @@ export const deleteBanco = createAsyncThunk(
       if (response.success) {
         return id;
       }
-      return rejectWithValue(response.message || 'Erro ao deletar banco');
+      return rejectWithValue('Erro ao deletar banco');
     } catch (error: any) {
       return rejectWithValue(error.response?.data?.message || 'Erro ao deletar banco');
     }
@@ -146,7 +146,7 @@ export const fetchExtratoBanco = createAsyncThunk(
       if (response.success && response.data) {
         return response.data;
       }
-      return rejectWithValue(response.message || 'Erro ao buscar extrato do banco');
+      return rejectWithValue('Erro ao buscar extrato do banco');
     } catch (error: any) {
       return rejectWithValue(error.response?.data?.message || 'Erro ao buscar extrato do banco');
     }

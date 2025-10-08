@@ -167,6 +167,7 @@ export interface ApiResponse<T> {
 
 export interface PaginatedResponse<T> {
   success: boolean;
+  message?: string;
   data: {
     // Coleções específicas retornadas pela API (ex.: despesas, receitas, bancos, cartoes, categorias)
     [key: string]: any;
