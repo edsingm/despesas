@@ -69,6 +69,8 @@ app.use('/api', apiRoutes)
  * health checks - must be before catch-all routes
  */
 app.get('/health', (req: Request, res: Response) => {
+  console.log(`🏥 Health check request from ${req.ip}`);
+  
   const dbStatus = {
     connected: mongoose.connection.readyState === 1,
     state: mongoose.connection.readyState // 0=disconnected, 1=connected, 2=connecting, 3=disconnecting
@@ -78,12 +80,16 @@ app.get('/health', (req: Request, res: Response) => {
   res.status(200).json({
     success: true,
     message: 'ok',
+    service: 'despesas-api',
     database: dbStatus,
-    timestamp: new Date().toISOString()
+    timestamp: new Date().toISOString(),
+    uptime: process.uptime()
   })
 })
 
 app.get('/api/health', (req: Request, res: Response) => {
+  console.log(`🏥 API Health check request from ${req.ip}`);
+  
   const dbStatus = {
     connected: mongoose.connection.readyState === 1,
     state: mongoose.connection.readyState
@@ -92,9 +98,17 @@ app.get('/api/health', (req: Request, res: Response) => {
   res.status(200).json({
     success: true,
     message: 'ok',
+    service: 'despesas-api',
     database: dbStatus,
-    timestamp: new Date().toISOString()
+    timestamp: new Date().toISOString(),
+    uptime: process.uptime()
   })
+})
+
+// Simple ping endpoint - no dependencies
+app.get('/ping', (req: Request, res: Response) => {
+  console.log(`🏓 Ping request from ${req.ip}`);
+  res.status(200).send('pong');
 })
 
 /**
