@@ -11,7 +11,8 @@ const PORT = parseInt(process.env.PORT || '3000', 10);
 const server = app.listen(PORT, '0.0.0.0', () => {
   console.log(`✅ Server ready on port ${PORT}`);
   console.log(`🌍 Environment: ${process.env.NODE_ENV}`);
-  console.log(`📡 Health check available at: http://0.0.0.0:${PORT}/health`);
+  console.log(`📡 Listening on 0.0.0.0:${PORT} (accepts external connections)`);
+  console.log(`🔗 Health check: GET /health`);
 });
 
 // Handle server errors
