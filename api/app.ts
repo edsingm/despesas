@@ -10,6 +10,7 @@ import express, {
 import cors from 'cors'
 import path from 'path'
 import dotenv from 'dotenv'
+import mongoose from 'mongoose'
 import { fileURLToPath } from 'url'  // Mantenha pra ESM
 import { connectDatabase } from './config/database.js'
 import apiRoutes from './routes/index.js'
@@ -68,17 +69,30 @@ app.use('/api', apiRoutes)
  * health checks - must be before catch-all routes
  */
 app.get('/health', (req: Request, res: Response) => {
+  const dbStatus = {
+    connected: mongoose.connection.readyState === 1,
+    state: mongoose.connection.readyState // 0=disconnected, 1=connected, 2=connecting, 3=disconnecting
+  };
+  
+  // Return 200 even if DB is not connected yet (graceful startup)
   res.status(200).json({
     success: true,
     message: 'ok',
+    database: dbStatus,
     timestamp: new Date().toISOString()
   })
 })
 
 app.get('/api/health', (req: Request, res: Response) => {
+  const dbStatus = {
+    connected: mongoose.connection.readyState === 1,
+    state: mongoose.connection.readyState
+  };
+  
   res.status(200).json({
     success: true,
     message: 'ok',
+    database: dbStatus,
     timestamp: new Date().toISOString()
   })
 })
