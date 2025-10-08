@@ -118,14 +118,30 @@ if (process.env.NODE_ENV === 'production') {
   console.log(`📁 Frontend path: ${frontendPath}`);
   console.log(`📄 Index.html path: ${indexPath}`);
   
-  // Serve static files
+  // Serve static files with proper configuration
   app.use(express.static(frontendPath, { 
-    fallthrough: true,
-    index: false // Don't auto-serve index.html
+    maxAge: '1d',
+    etag: true,
+    lastModified: true,
+    setHeaders: (res, filePath) => {
+      // Set correct MIME types for JS modules
+      if (filePath.endsWith('.js')) {
+        res.setHeader('Content-Type', 'application/javascript; charset=utf-8');
+      } else if (filePath.endsWith('.mjs')) {
+        res.setHeader('Content-Type', 'application/javascript; charset=utf-8');
+      } else if (filePath.endsWith('.css')) {
+        res.setHeader('Content-Type', 'text/css; charset=utf-8');
+      }
+    }
   }));
   
-  // SPA catch-all - must be last
-  app.get('*', (req: Request, res: Response) => {
+  // SPA catch-all - ONLY for non-file routes (no dots or /api)
+  app.get('*', (req: Request, res: Response, next: NextFunction) => {
+    // Don't catch API routes or file requests
+    if (req.path.startsWith('/api') || req.path.includes('.')) {
+      return next();
+    }
+    
     console.log(`📍 SPA catch-all serving index.html for: ${req.path}`);
     res.sendFile(indexPath, (err) => {
       if (err) {
