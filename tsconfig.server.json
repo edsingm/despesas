@@ -2,8 +2,13 @@
   "extends": "./tsconfig.json",
   "compilerOptions": {
     "outDir": "./dist/server",
-    "module": "commonjs"
+    "module": "commonjs",  // Override: muda de 'bundler' pra Node compatível
+    "target": "ES2022",    // Node 18+
+    "declaration": false,  // Sem .d.ts em prod
+    "sourceMap": false,    // Sem maps em prod
+    "esModuleInterop": true,  // Pra imports mistos ESM/CJS
+    "allowSyntheticDefaultImports": true
   },
-  "include": ["api/**/*.ts", "server.ts"], // Ajuste pros seus arquivos backend
-  "exclude": ["src/**/*.ts", "node_modules"]
+  "include": ["app.ts", "api/**/*.ts", "config/**/*.ts"],  // Inclui seu app.ts e pastas
+  "exclude": ["src/**/*.ts", "node_modules", "dist"]
 }

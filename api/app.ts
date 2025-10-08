@@ -29,7 +29,7 @@ const app: express.Application = express()
 // Middlewares globais
 app.use(cors({
   origin: process.env.NODE_ENV === 'production' 
-    ? ['https://seu-dominio.com'] 
+    ? ['https://seu-dominio.com']  // Mude pro domínio do EasyPanel
     : ['http://localhost:5173', 'http://localhost:3000'],
   credentials: true
 }))
@@ -63,6 +63,15 @@ app.use(
   },
 )
 
+// **NOVO: Serving do Frontend React em Prod**
+if (process.env.NODE_ENV === 'production') {
+  app.use(express.static(path.join(__dirname, '../dist')));  // Serve assets do Vite build
+  // Catch-all pra rotas do React Router
+  app.get('*', (req: Request, res: Response) => {
+    res.sendFile(path.join(__dirname, '../dist/index.html'));
+  });
+}
+
 /**
  * error handler middleware
  */
@@ -74,7 +83,7 @@ app.use((error: Error, req: Request, res: Response, next: NextFunction) => {
 })
 
 /**
- * 404 handler
+ * 404 handler (só pra API, frontend é servido acima)
  */
 app.use((req: Request, res: Response) => {
   res.status(404).json({
@@ -82,5 +91,13 @@ app.use((req: Request, res: Response) => {
     error: 'API not found',
   })
 })
+
+// **NOVO: Inicie o server aqui em prod**
+if (require.main === module) {  // Só roda se for entry point
+  const PORT = parseInt(process.env.PORT || '3000', 10);
+  app.listen(PORT, '0.0.0.0', () => {
+    console.log(`Server rodando na porta ${PORT} em ${process.env.NODE_ENV}`);
+  });
+}
 
 export default app

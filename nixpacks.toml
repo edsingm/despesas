@@ -6,8 +6,9 @@ cmds = [
 [phases.build]
 cmds = [
   'pnpm run build:client',  # Build do Vite (React) -> dist/
+  'pnpm run build:server',
   'tsc -p tsconfig.server.json'  # Build do server TS -> dist/server/ ou similar
 ]
 
 [start]
-cmd = 'node dist/server.js'  # Agora deve existir após build
+cmd = 'node dist/app.js'  # Agora deve existir após build

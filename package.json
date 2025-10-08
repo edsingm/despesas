@@ -5,7 +5,6 @@
   "type": "module",
   "scripts": {
     "client:dev": "vite",
-    "build": "tsc -b && vite build",
     "lint": "eslint .",
     "preview": "vite preview",
     "check": "tsc --noEmit",
@@ -14,7 +13,9 @@
     "seed": "tsx api/seeders/index.ts",
     "update:icons": "tsx api/scripts/updateCategoriesIcons.ts",
     "build:client": "vite build",
-    "build:server": "tsc -p tsconfig.server.json"
+    "build:server": "tsc -p tsconfig.server.json",
+    "build": "pnpm run build:client && pnpm run build:server",
+    "start": "node dist/server/app.js"
   },
   "dependencies": {
     "@reduxjs/toolkit": "^2.0.1",
