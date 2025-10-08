@@ -1,5 +1,5 @@
 import { Request, Response } from 'express';
-import { Banco } from '../models/Banco';
+import { Banco } from '../models/Banco.ts';
 import mongoose from 'mongoose';
 
 export class BancoController {

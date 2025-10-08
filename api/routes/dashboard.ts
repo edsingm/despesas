@@ -1,7 +1,7 @@
 import { Router } from 'express';
-import { DashboardController } from '../controllers/DashboardController';
-import { authenticateToken } from '../middleware/auth';
-import { validateQuery } from '../middleware/validation';
+import { DashboardController } from '../controllers/DashboardController.ts';
+import { authenticateToken } from '../middleware/auth.ts';
+import { validateQuery } from '../middleware/validation.ts';
 import Joi from 'joi';
 
 const router = Router();

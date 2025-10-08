@@ -11,11 +11,16 @@ import cors from 'cors'
 import path from 'path'
 import dotenv from 'dotenv'
 import { fileURLToPath } from 'url'  // Mantenha pra ESM
-import { connectDatabase } from './config/database'
-import apiRoutes from './routes/index'
+import { connectDatabase } from './config/database.ts'
+import apiRoutes from './routes/index.ts'
 
 // Fix: __dirname compatível ESM/CJS
-const __filename = import.meta.url ? fileURLToPath(import.meta.url) : __filename
+let __filename: string;
+if (import.meta.url) {
+  __filename = fileURLToPath(import.meta.url);
+} else {
+  __filename = (global as any).__filename;  // Fallback CJS
+}
 const __dirname = path.dirname(__filename)
 
 // load env

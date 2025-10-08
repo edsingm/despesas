@@ -1,11 +1,11 @@
 import { Request, Response } from 'express';
-import { Despesa } from '../models/Despesa';
-import { Banco } from '../models/Banco';
-import { Cartao } from '../models/Cartao';
+import { Despesa } from '../models/Despesa.ts';
+import { Banco } from '../models/Banco.ts';
+import { Cartao } from '../models/Cartao.ts';
 import mongoose from 'mongoose';
 import path from 'path';
 import fs from 'fs/promises';
-import { parseLocalDate } from '../utils/dateUtils';
+import { parseLocalDate } from '../utils/dateUtils.ts';
 
 export class DespesaController {
   /**

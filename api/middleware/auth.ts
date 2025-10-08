@@ -1,6 +1,6 @@
 import { Request, Response, NextFunction } from 'express';
 import jwt, { SignOptions } from 'jsonwebtoken';
-import { User, IUser } from '../models/User';
+import { User, IUser } from '../models/User.ts';
 
 // Estender interface Request para incluir user
 declare global {

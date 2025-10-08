@@ -88,7 +88,7 @@ const cartaoSchema = new Schema<ICartao>({
   timestamps: true,
   toJSON: {
     transform: function(doc, ret) {
-      delete ret.__v;
+      delete (ret as any).__v;
       return ret;
     }
   }

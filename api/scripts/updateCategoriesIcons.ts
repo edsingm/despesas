@@ -1,6 +1,6 @@
 import mongoose from 'mongoose';
-import { Categoria } from '../models/Categoria';
-import { connectDatabase } from '../config/database';
+import { Categoria } from '../models/Categoria.ts';
+import { connectDatabase } from '../config/database.ts';
 import dotenv from 'dotenv';
 
 dotenv.config();

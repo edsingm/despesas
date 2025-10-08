@@ -1,10 +1,10 @@
 // Exportação centralizada de todos os modelos
-export { User, IUser } from './User';
-export { Categoria, ICategoria } from './Categoria';
-export { Banco, IBanco } from './Banco';
-export { Cartao, ICartao } from './Cartao';
-export { Receita, IReceita } from './Receita';
-export { Despesa, IDespesa, IParcela } from './Despesa';
+export { User, IUser } from './User.ts';
+export { Categoria, ICategoria } from './Categoria.ts';
+export { Banco, IBanco } from './Banco.ts';
+export { Cartao, ICartao } from './Cartao.ts';
+export { Receita, IReceita } from './Receita.ts';
+export { Despesa, IDespesa, IParcela } from './Despesa.ts';
 
 // Função para inicializar todos os modelos
 export const initializeModels = () => {

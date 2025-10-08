@@ -1,8 +1,8 @@
 import { Router } from 'express';
-import { CategoriaController } from '../controllers/CategoriaController';
-import { authenticateToken } from '../middleware/auth';
-import { validateBody, validateParams, validateQuery } from '../middleware/validation';
-import { categoriaSchemas, commonSchemas } from '../utils/validationSchemas';
+import { CategoriaController } from '../controllers/CategoriaController.ts';
+import { authenticateToken } from '../middleware/auth.ts';
+import { validateBody, validateParams, validateQuery } from '../middleware/validation.ts';
+import { categoriaSchemas, commonSchemas } from '../utils/validationSchemas.ts';
 import Joi from 'joi';
 
 const router = Router();

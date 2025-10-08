@@ -1,9 +1,9 @@
 import { Request, Response } from 'express';
-import { Receita } from '../models/Receita';
-import { Despesa } from '../models/Despesa';
-import { Banco } from '../models/Banco';
-import { Cartao } from '../models/Cartao';
-import { Categoria } from '../models/Categoria';
+import { Receita } from '../models/Receita.ts';
+import { Despesa } from '../models/Despesa.ts';
+import { Banco } from '../models/Banco.ts';
+import { Cartao } from '../models/Cartao.ts';
+import { Categoria } from '../models/Categoria.ts';
 import mongoose from 'mongoose';
 
 export class DashboardController {

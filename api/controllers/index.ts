@@ -1,7 +1,7 @@
-export { AuthController } from './AuthController';
-export { CategoriaController } from './CategoriaController';
-export { BancoController } from './BancoController';
-export { CartaoController } from './CartaoController';
-export { ReceitaController } from './ReceitaController';
-export { DespesaController } from './DespesaController';
-export { DashboardController } from './DashboardController';
+export { AuthController } from './AuthController.ts';
+export { CategoriaController } from './CategoriaController.ts';
+export { BancoController } from './BancoController.ts';
+export { CartaoController } from './CartaoController.ts';
+export { ReceitaController } from './ReceitaController.ts';
+export { DespesaController } from './DespesaController.ts';
+export { DashboardController } from './DashboardController.ts';
