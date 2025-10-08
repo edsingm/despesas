@@ -43,7 +43,7 @@ app.use(express.urlencoded({ extended: true, limit: '10mb' }))
 
 // Middleware para logs de requisições
 app.use((req: Request, res: Response, next: NextFunction) => {
-  console.log(`${new Date().toISOString()} - ${req.method} ${req.path}`)
+  console.log(`${new Date().toISOString()} - ${req.method} ${req.path} - ${req.ip}`)
   next()
 })
 
@@ -57,17 +57,23 @@ app.use('/uploads', express.static(path.join(__dirname, '../../../uploads')))
 app.use('/api', apiRoutes)
 
 /**
- * health
+ * health checks - must be before catch-all routes
  */
-app.use(
-  '/api/health',
-  (req: Request, res: Response, next: NextFunction): void => {
-    res.status(200).json({
-      success: true,
-      message: 'ok',
-    })
-  },
-)
+app.get('/health', (req: Request, res: Response) => {
+  res.status(200).json({
+    success: true,
+    message: 'ok',
+    timestamp: new Date().toISOString()
+  })
+})
+
+app.get('/api/health', (req: Request, res: Response) => {
+  res.status(200).json({
+    success: true,
+    message: 'ok',
+    timestamp: new Date().toISOString()
+  })
+})
 
 // Serving do Frontend React em Prod
 // Em produção: __dirname = /app/dist/server/api, então ../.. = /app/dist
