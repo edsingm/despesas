@@ -42,9 +42,6 @@ const userSchema = new Schema<IUser>({
   }
 });
 
-// Índices para performance
-userSchema.index({ email: 1 });
-
 // Middleware para hash da senha antes de salvar
 userSchema.pre('save', async function(next) {
   if (!this.isModified('passwordHash')) return next();
