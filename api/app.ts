@@ -94,11 +94,29 @@ if (process.env.NODE_ENV === 'production') {
   const frontendPath = path.join(__dirname, '../..');
   const indexPath = path.join(__dirname, '../../index.html');
   
-  // Serve static files
-  app.use(express.static(frontendPath));
+  // Serve static files with proper configuration
+  app.use(express.static(frontendPath, {
+    maxAge: '1d',
+    etag: true,
+    lastModified: true,
+    setHeaders: (res, path) => {
+      // Set correct MIME types
+      if (path.endsWith('.js')) {
+        res.setHeader('Content-Type', 'application/javascript');
+      } else if (path.endsWith('.css')) {
+        res.setHeader('Content-Type', 'text/css');
+      }
+    }
+  }));
   
-  // SPA catch-all - must be last
+  // SPA catch-all - only for HTML navigation requests
   app.get('*', (req: Request, res: Response) => {
+    // Don't intercept API routes or static files
+    if (req.path.startsWith('/api') || 
+        req.path.startsWith('/uploads') || 
+        req.path.includes('.')) {
+      return res.status(404).send('Not found');
+    }
     res.sendFile(indexPath);
   });
 }
