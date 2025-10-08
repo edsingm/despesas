@@ -640,7 +640,7 @@ export class DespesaController {
             const parcela = despesa.parcelas[i];
             const dataVencimento = new Date(parcela.dataVencimento);
             
-            if (!parcela.pago && dataVencimento >= hoje && dataVencimento <= dataLimite) {
+            if (!parcela.paga && dataVencimento >= hoje && dataVencimento <= dataLimite) {
               parcelasVencimento.push({
                 despesaId: despesa._id,
                 parcelaIndex: i,

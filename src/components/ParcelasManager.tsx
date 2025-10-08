@@ -65,7 +65,7 @@ const ParcelasManager: React.FC<ParcelasManagerProps> = ({ despesaId, onClose })
         }
       })).unwrap();
       
-      dispatch(fetchDespesas());
+      dispatch(fetchDespesas(undefined));
     } catch (error) {
       console.error('Erro ao atualizar parcela:', error);
     } finally {

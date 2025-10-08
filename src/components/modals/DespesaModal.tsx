@@ -261,7 +261,7 @@ const DespesaModal: React.FC<DespesaModalProps> = ({ isOpen, onClose, mode }) =>
 
   const handleNumeroParcelasBlur = () => {
     // Garantir que o valor seja válido quando o campo perde o foco
-    if (formData.numeroParcelas === '' || formData.numeroParcelas < 1) {
+    if (formData.numeroParcelas === '' || Number(formData.numeroParcelas) < 1) {
       setFormData(prev => ({ ...prev, numeroParcelas: 1 }));
     }
   };

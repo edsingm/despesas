@@ -21,7 +21,7 @@ export interface IDespesa extends Document {
   numeroParcelas?: number;
   parcelas?: IParcela[];
   recorrente: boolean;
-  tipoRecorrencia?: 'mensal' | 'anual';
+  tipoRecorrencia?: 'diaria' | 'semanal' | 'mensal' | 'anual';
   observacoes?: string;
   comprovante?: string;
   createdAt: Date;
@@ -140,8 +140,8 @@ const despesaSchema = new Schema<IDespesa>({
   tipoRecorrencia: {
     type: String,
     enum: {
-      values: ['mensal', 'anual'],
-      message: 'Tipo de recorrência deve ser "mensal" ou "anual"'
+      values: ['diaria', 'semanal', 'mensal', 'anual'],
+      message: 'Tipo de recorrência deve ser "diaria", "semanal", "mensal" ou "anual"'
     },
     required: function(this: IDespesa) {
       return this.recorrente;

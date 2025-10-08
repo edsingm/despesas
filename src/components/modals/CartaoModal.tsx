@@ -97,7 +97,7 @@ const CartaoModal: React.FC<CartaoModalProps> = ({ isOpen, onClose, mode }) => {
         })).unwrap();
       }
       
-      dispatch(fetchCartoes());
+      dispatch(fetchCartoes(undefined));
       onClose();
     } catch (error: any) {
       console.error('Erro ao salvar cartão:', error);

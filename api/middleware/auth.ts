@@ -150,7 +150,7 @@ export const generateToken = (user: IUser): string => {
     email: user.email
   };
   
-  return jwt.sign(payload, jwtSecret, { expiresIn: jwtExpiration });
+  return jwt.sign(payload, jwtSecret, { expiresIn: jwtExpiration || '7d' });
 };
 
 /**

@@ -20,7 +20,7 @@ const Cartoes: React.FC = () => {
   const [isDeleting, setIsDeleting] = useState(false);
 
   useEffect(() => {
-    dispatch(fetchCartoes());
+    dispatch(fetchCartoes(undefined));
   }, [dispatch]);
 
   const handleEdit = (cartao: any) => {
@@ -46,7 +46,7 @@ const Cartoes: React.FC = () => {
     setIsDeleting(true);
     try {
       await dispatch(deleteCartao(cartaoToDelete.id)).unwrap();
-      dispatch(fetchCartoes());
+      dispatch(fetchCartoes(undefined));
       setShowDeleteModal(false);
       setCartaoToDelete(null);
     } catch (error) {
@@ -157,9 +157,9 @@ const Cartoes: React.FC = () => {
                       </div>
                       <div className="flex items-center">
                         {cartao.ativo ? (
-                          <ToggleRight className="h-5 w-5" title="Ativo" />
+                          <ToggleRight className="h-5 w-5" />
                         ) : (
-                          <ToggleLeft className="h-5 w-5 opacity-60" title="Inativo" />
+                          <ToggleLeft className="h-5 w-5 opacity-60" />
                         )}
                       </div>
                     </div>

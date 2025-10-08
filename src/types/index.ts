@@ -26,6 +26,8 @@ export interface Banco {
   userId: string;
   nome: string;
   tipo: 'conta_corrente' | 'conta_poupanca' | 'conta_investimento';
+  agencia?: string;
+  conta?: string;
   saldoInicial: number;
   saldoAtual: number;
   ativo: boolean;
@@ -38,6 +40,7 @@ export interface Cartao {
   userId: string;
   nome: string;
   bandeira: string;
+  banco?: Banco;
   limite: number;
   faturaAtual: number;
   diaVencimento: number;
@@ -51,7 +54,7 @@ export interface Parcela {
   numero: number;
   valor: number;
   dataVencimento: string;
-  pago: boolean;
+  paga: boolean;
   dataPagamento?: string;
 }
 

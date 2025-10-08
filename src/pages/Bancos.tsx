@@ -20,7 +20,7 @@ const Bancos: React.FC = () => {
   const [isDeleting, setIsDeleting] = useState(false);
 
   useEffect(() => {
-    dispatch(fetchBancos());
+    dispatch(fetchBancos(undefined));
   }, [dispatch]);
 
   const handleEdit = (banco: any) => {
@@ -46,7 +46,7 @@ const Bancos: React.FC = () => {
     setIsDeleting(true);
     try {
       await dispatch(deleteBanco(bancoToDelete.id)).unwrap();
-      dispatch(fetchBancos());
+      dispatch(fetchBancos(undefined));
       setShowDeleteModal(false);
       setBancoToDelete(null);
     } catch (error) {
@@ -131,9 +131,9 @@ const Bancos: React.FC = () => {
                   </div>
                   <div className="flex items-center">
                     {banco.ativo ? (
-                      <ToggleRight className="h-5 w-5 text-green-500" title="Ativo" />
+                      <ToggleRight className="h-5 w-5 text-green-500" />
                     ) : (
-                      <ToggleLeft className="h-5 w-5 text-gray-400" title="Inativo" />
+                      <ToggleLeft className="h-5 w-5 text-gray-400" />
                     )}
                   </div>
                 </div>

@@ -86,7 +86,7 @@ const BancoModal: React.FC<BancoModalProps> = ({ isOpen, onClose, mode }) => {
         })).unwrap();
       }
       
-      dispatch(fetchBancos());
+      dispatch(fetchBancos(undefined));
       onClose();
     } catch (error) {
       console.error('Erro ao salvar banco:', error);

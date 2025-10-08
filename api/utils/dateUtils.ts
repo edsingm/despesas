@@ -9,7 +9,7 @@
  * @param dateString - Data em formato YYYY-MM-DD
  * @returns Date object representando o dia exato (meio-dia local)
  */
-export function parseLocalDate(dateString: string): Date {
+export function parseLocalDate(dateString: string | Date): Date {
   if (!dateString) {
     throw new Error('Data é obrigatória');
   }
