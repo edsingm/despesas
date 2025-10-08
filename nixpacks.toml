@@ -1,10 +1,13 @@
 [phases.install]
 cmds = [
-  'NODE_ENV=development pnpm i --frozen-lockfile',  # Instala tudo (inclui devDeps pro build)
+  'NODE_ENV=development pnpm i --frozen-lockfile',  # Pega devDeps pro build
 ]
 
 [phases.build]
-cmds = ['pnpm run build']
+cmds = [
+  'pnpm run build:client',  # Build do Vite (React) -> dist/
+  'tsc -p tsconfig.server.json'  # Build do server TS -> dist/server/ ou similar
+]
 
 [start]
-cmd = 'node dist/server.js'  # Ajuste pro seu entry point (ex: server.js após build)
+cmd = 'node dist/server.js'  # Agora deve existir após build

@@ -12,7 +12,9 @@
     "server:dev": "nodemon",
     "dev": "concurrently \"npm run client:dev\" \"npm run server:dev\"",
     "seed": "tsx api/seeders/index.ts",
-    "update:icons": "tsx api/scripts/updateCategoriesIcons.ts"
+    "update:icons": "tsx api/scripts/updateCategoriesIcons.ts",
+    "build:client": "vite build",
+    "build:server": "tsc -p tsconfig.server.json"
   },
   "dependencies": {
     "@reduxjs/toolkit": "^2.0.1",

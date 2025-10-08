@@ -1,0 +1,9 @@
+{
+  "extends": "./tsconfig.json",
+  "compilerOptions": {
+    "outDir": "./dist/server",
+    "module": "commonjs"
+  },
+  "include": ["api/**/*.ts", "server.ts"], // Ajuste pros seus arquivos backend
+  "exclude": ["src/**/*.ts", "node_modules"]
+}
