@@ -1,5 +1,5 @@
 import { Request, Response, NextFunction } from 'express';
-import jwt from 'jsonwebtoken';
+import jwt, { SignOptions } from 'jsonwebtoken';
 import { User, IUser } from '../models/User';
 
 // Estender interface Request para incluir user
@@ -150,7 +150,11 @@ export const generateToken = (user: IUser): string => {
     email: user.email
   };
   
-  return jwt.sign(payload, jwtSecret, { expiresIn: jwtExpiration || '7d' });
+  const options: SignOptions = {
+    expiresIn: jwtExpiration as any
+  };
+  
+  return jwt.sign(payload, jwtSecret, options);
 };
 
 /**
