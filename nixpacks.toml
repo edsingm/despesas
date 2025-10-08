@@ -1,14 +1,13 @@
 [phases.install]
 cmds = [
-  'NODE_ENV=development pnpm i --frozen-lockfile',  # Pega devDeps pro build
+  'NODE_ENV=development pnpm i --frozen-lockfile',  # Dev deps pro build
 ]
 
 [phases.build]
 cmds = [
-  'pnpm run build:client',  # Build do Vite (React) -> dist/
-  'pnpm run build:server',
-  'tsc -p tsconfig.server.json'  # Build do server TS -> dist/server/ ou similar
+  'pnpm run build:client',  # Vite -> dist/
+  'pnpm run build:server'   # TSC server -> dist/server/
 ]
 
 [start]
-cmd = 'node dist/app.js'  # Agora deve existir após build
+cmd = 'node dist/server/app.js'  # Path correto: app.ts -> app.js em dist/server
