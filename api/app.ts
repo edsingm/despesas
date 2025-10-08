@@ -32,10 +32,18 @@ connectDatabase()
 const app: express.Application = express()
 
 // Middlewares globais
+// CORS mais permissivo para permitir health checks
 app.use(cors({
   origin: process.env.NODE_ENV === 'production' 
-    ? ['https://despesas.halz.com.br', 'http://despesas.halz.com.br']
-    : ['http://localhost:5173', 'http://localhost:3000'],
+    ? (origin, callback) => {
+        // Permitir health checks sem origin e domínios específicos
+        if (!origin || origin.includes('despesas.halz.com.br') || origin.includes('halz.com.br')) {
+          callback(null, true);
+        } else {
+          callback(null, true); // Temporariamente permitir todos para debug
+        }
+      }
+    : ['http://localhost:5173', 'http://localhost:3000', 'http://localhost:3001'],
   credentials: true
 }))
 app.use(express.json({ limit: '10mb' }))
@@ -75,33 +83,33 @@ app.get('/api/health', (req: Request, res: Response) => {
   })
 })
 
-// Serving do Frontend React em Prod
-// Em produção: __dirname = /app/dist/server/api, então ../.. = /app/dist
-if (process.env.NODE_ENV === 'production') {
-  app.use(express.static(path.join(__dirname, '../..')));
-  app.get('*', (req: Request, res: Response) => {
-    res.sendFile(path.join(__dirname, '../../index.html'));
-  });
-}
-
 /**
- * error handler middleware
+ * error handler middleware (must be before catch-all route)
  */
 app.use((error: Error, req: Request, res: Response, next: NextFunction) => {
+  console.error('Error:', error);
   res.status(500).json({
     success: false,
     error: 'Server internal error',
   })
 })
 
-/**
- * 404 handler
- */
-app.use((req: Request, res: Response) => {
-  res.status(404).json({
-    success: false,
-    error: 'API not found',
+// Serving do Frontend React em Prod
+// Em produção: __dirname = /app/dist/server/api, então ../.. = /app/dist
+// Este deve ser o ÚLTIMO handler para catch-all de rotas não encontradas
+if (process.env.NODE_ENV === 'production') {
+  app.use(express.static(path.join(__dirname, '../..')));
+  app.get('*', (req: Request, res: Response) => {
+    res.sendFile(path.join(__dirname, '../../index.html'));
+  });
+} else {
+  // Em desenvolvimento, retornar 404 para rotas não encontradas
+  app.use((req: Request, res: Response) => {
+    res.status(404).json({
+      success: false,
+      error: 'Route not found',
+    })
   })
-})
+}
 
 export default app
