@@ -117,6 +117,7 @@ if (process.env.NODE_ENV === 'production') {
   
   console.log(`📁 Frontend path: ${frontendPath}`);
   console.log(`📄 Index.html path: ${indexPath}`);
+  console.log(`📂 __dirname: ${__dirname}`);
   
   // Serve static files with proper configuration
   app.use(express.static(frontendPath, { 
@@ -132,16 +133,27 @@ if (process.env.NODE_ENV === 'production') {
       } else if (filePath.endsWith('.css')) {
         res.setHeader('Content-Type', 'text/css; charset=utf-8');
       }
+      console.log(`📦 Serving static file: ${filePath}`);
     }
   }));
   
-  // SPA catch-all - ONLY for non-file routes (no dots or /api)
-  app.get('*', (req: Request, res: Response, next: NextFunction) => {
-    // Don't catch API routes or file requests
-    if (req.path.startsWith('/api') || req.path.includes('.')) {
-      return next();
+  // SPA catch-all - serve index.html for all non-api, non-file routes
+  app.get('*', (req: Request, res: Response) => {
+    // Skip API routes
+    if (req.path.startsWith('/api')) {
+      return res.status(404).json({ 
+        success: false, 
+        error: 'API endpoint not found' 
+      });
     }
     
+    // For file requests that weren't found by static middleware
+    if (req.path.includes('.') && !req.path.endsWith('.html')) {
+      console.log(`❌ Static file not found: ${req.path}`);
+      return res.status(404).send('File not found');
+    }
+    
+    // Serve index.html for SPA routes
     console.log(`📍 SPA catch-all serving index.html for: ${req.path}`);
     res.sendFile(indexPath, (err) => {
       if (err) {
