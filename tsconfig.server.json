@@ -1,23 +1,23 @@
 {
   "compilerOptions": {
     "target": "ES2022",
-    "lib": ["ES2022"],  // Ou do seu base tsconfig.json
-    "module": "commonjs",  // Essencial: Node compatível, ignora bundler
-    "moduleResolution": "node",  // Pra Node, não bundler
+    "lib": ["ES2022"],
+    "module": "node16",  // Fix: Suporta import.meta + Node compat
+    "moduleResolution": "node",
     "allowSyntheticDefaultImports": true,
     "esModuleInterop": true,
     "allowJs": true,
     "checkJs": false,
-    "declaration": false,  // Sem .d.ts em prod
-    "sourceMap": false,    // Sem maps em prod
-    "strict": true,        // Mantenha estrito se no base
+    "declaration": false,
+    "sourceMap": false,
+    "strict": true,
     "noEmit": false,
     "outDir": "./dist/server",
     "baseUrl": ".",
-    "paths": {  // Copie do base se usar aliases
+    "paths": {
       "@/*": ["./*"]
     }
   },
-  "include": ["app.ts", "api/**/*.ts", "config/**/*.ts", "routes/**/*.ts"],  // Suas pastas
-  "exclude": ["node_modules", "dist", "src/**/*.ts"]  // Exclui frontend
+  "include": ["app.ts", "api/**/*.ts", "config/**/*.ts", "routes/**/*.ts"],
+  "exclude": ["node_modules", "dist", "src/**/*.ts"]
 }
