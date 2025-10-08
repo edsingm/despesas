@@ -109,12 +109,34 @@ app.use((error: Error, req: Request, res: Response, next: NextFunction) => {
 })
 
 // Serving do Frontend React em Prod
-// Em produção: __dirname = /app/dist/server/api, então ../.. = /app/dist
+// Em produção: __dirname = /workspace/dist/server/api, então ../.. = /workspace/dist
 // Este deve ser o ÚLTIMO handler para catch-all de rotas não encontradas
 if (process.env.NODE_ENV === 'production') {
-  app.use(express.static(path.join(__dirname, '../..')));
+  const frontendPath = path.join(__dirname, '../..');
+  const indexPath = path.join(__dirname, '../../index.html');
+  
+  console.log(`📁 Frontend path: ${frontendPath}`);
+  console.log(`📄 Index.html path: ${indexPath}`);
+  
+  // Serve static files
+  app.use(express.static(frontendPath, { 
+    fallthrough: true,
+    index: false // Don't auto-serve index.html
+  }));
+  
+  // SPA catch-all - must be last
   app.get('*', (req: Request, res: Response) => {
-    res.sendFile(path.join(__dirname, '../../index.html'));
+    console.log(`📍 SPA catch-all serving index.html for: ${req.path}`);
+    res.sendFile(indexPath, (err) => {
+      if (err) {
+        console.error('❌ Error serving index.html:', err);
+        res.status(500).json({ 
+          success: false, 
+          error: 'Failed to load application',
+          details: process.env.NODE_ENV === 'development' ? err.message : undefined
+        });
+      }
+    });
   });
 } else {
   // Em desenvolvimento, retornar 404 para rotas não encontradas
