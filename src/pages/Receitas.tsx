@@ -22,13 +22,14 @@ import {
 } from 'lucide-react';
 import ReceitaModal from '../components/modals/ReceitaModal';
 import ConfirmDeleteModal from '../components/modals/ConfirmDeleteModal';
+import NoData from '../components/NoData';
 import type { FiltroReceita } from '../types';
 import { formatDateBR } from '../lib/dateUtils';
 
 const Receitas: React.FC = () => {
   const dispatch = useAppDispatch();
   const location = useLocation();
-  const { receitas, isLoading, pagination } = useAppSelector((state) => state.receita);
+  const { receitas, isLoading, pagination, totalFiltrado } = useAppSelector((state) => state.receita);
   const { categoriasReceita: categorias } = useAppSelector((state) => state.categoria);
   const { bancos } = useAppSelector((state) => state.banco);
 
@@ -39,15 +40,15 @@ const Receitas: React.FC = () => {
     categoriaId?: string;
     bancoId?: string;
     recorrente?: boolean;
-    dataInicio?: string;
-    dataFim?: string;
+    mes?: string;
+    ano?: string;
   }>({
     busca: '',
     categoriaId: undefined,
     bancoId: undefined,
     recorrente: undefined,
-    dataInicio: '',
-    dataFim: '',
+    mes: undefined,
+    ano: undefined,
   });
   const [showFilters, setShowFilters] = useState(false);
   const [showModal, setShowModal] = useState(false);
@@ -57,16 +58,7 @@ const Receitas: React.FC = () => {
   const [isDeleting, setIsDeleting] = useState(false);
 
   useEffect(() => {
-    const params: FiltroReceita = {
-      page: 1,
-      limit: 10,
-      categoriaId: filtros.categoriaId || undefined,
-      bancoId: filtros.bancoId || undefined,
-      recorrente: typeof filtros.recorrente === 'boolean' ? filtros.recorrente : undefined,
-      dataInicio: filtros.dataInicio || undefined,
-      dataFim: filtros.dataFim || undefined,
-    };
-    dispatch(fetchReceitas(params));
+    dispatch(fetchReceitas({ page: 1, limit: 10 }));
     dispatch(fetchCategoriasReceita());
     dispatch(fetchBancos({}));
   }, [dispatch]);
@@ -80,29 +72,50 @@ const Receitas: React.FC = () => {
   }, [location.search]);
 
   const handleSearch = () => {
-    const params: FiltroReceita = {
+    const { busca, ...params } = filtros;
+    
+    const requestParams: FiltroReceita = { 
+      ...params, 
+      page: 1, 
+      limit: 10, 
+      sort: 'desc', 
+      sortBy: 'data' 
+    };
+    
+    dispatch(fetchReceitas(requestParams));
+  };
+
+  const handleClearFilters = () => {
+    setFiltros({
+      busca: '',
+      categoriaId: undefined,
+      bancoId: undefined,
+      recorrente: undefined,
+      mes: undefined,
+      ano: undefined,
+    });
+
+    const requestParams: FiltroReceita = {
       page: 1,
       limit: 10,
-      categoriaId: filtros.categoriaId || undefined,
-      bancoId: filtros.bancoId || undefined,
-      recorrente: typeof filtros.recorrente === 'boolean' ? filtros.recorrente : undefined,
-      dataInicio: filtros.dataInicio || undefined,
-      dataFim: filtros.dataFim || undefined,
+      sort: 'desc',
+      sortBy: 'data'
     };
-    dispatch(fetchReceitas(params));
+    dispatch(fetchReceitas(requestParams));
   };
 
   const handlePageChange = (page: number) => {
-    const params: FiltroReceita = {
+    const { busca, ...params } = filtros;
+
+    const requestParams: FiltroReceita = {
+      ...params,
       page,
       limit: 10,
-      categoriaId: filtros.categoriaId || undefined,
-      bancoId: filtros.bancoId || undefined,
-      recorrente: typeof filtros.recorrente === 'boolean' ? filtros.recorrente : undefined,
-      dataInicio: filtros.dataInicio || undefined,
-      dataFim: filtros.dataFim || undefined,
+      sort: 'desc',
+      sortBy: 'data'
     };
-    dispatch(fetchReceitas(params));
+
+    dispatch(fetchReceitas(requestParams));
   };
 
   const handleEdit = (receita: any) => {
@@ -134,8 +147,7 @@ const Receitas: React.FC = () => {
         categoriaId: filtros.categoriaId || undefined,
         bancoId: filtros.bancoId || undefined,
         recorrente: typeof filtros.recorrente === 'boolean' ? filtros.recorrente : undefined,
-        dataInicio: filtros.dataInicio || undefined,
-        dataFim: filtros.dataFim || undefined,
+
       };
       dispatch(fetchReceitas(params));
       setShowDeleteModal(false);
@@ -159,6 +171,9 @@ const Receitas: React.FC = () => {
       currency: 'BRL',
     }).format(value);
   };
+
+  // Usar total filtrado do Redux (calculado no backend)
+  const totalReceitasFiltradas = totalFiltrado;
 
   const formatDate = (date: string) => {
     return formatDateBR(date);
@@ -231,6 +246,12 @@ const Receitas: React.FC = () => {
           >
             Buscar
           </button>
+          <button
+            onClick={handleClearFilters}
+            className="px-4 py-2 border border-gray-300 text-sm font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50"
+          >
+            Limpar filtros
+          </button>
         </div>
 
         {/* Filtros avançados */}
@@ -301,26 +322,48 @@ const Receitas: React.FC = () => {
 
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-1">
-                Data Início
+                Mês
               </label>
-              <input
-                type="date"
-                value={filtros.dataInicio}
-                onChange={(e) => setFiltros({ ...filtros, dataInicio: e.target.value })}
+              <select
+                value={filtros.mes ?? ''}
+                onChange={(e) => setFiltros({ ...filtros, mes: e.target.value || undefined })}
                 className="block w-full border-gray-300 rounded-md focus:ring-blue-500 focus:border-blue-500 sm:text-sm"
-              />
+              >
+                <option value="">Todos os meses</option>
+                <option value="1">Janeiro</option>
+                <option value="2">Fevereiro</option>
+                <option value="3">Março</option>
+                <option value="4">Abril</option>
+                <option value="5">Maio</option>
+                <option value="6">Junho</option>
+                <option value="7">Julho</option>
+                <option value="8">Agosto</option>
+                <option value="9">Setembro</option>
+                <option value="10">Outubro</option>
+                <option value="11">Novembro</option>
+                <option value="12">Dezembro</option>
+              </select>
             </div>
 
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-1">
-                Data Fim
+                Ano
               </label>
-              <input
-                type="date"
-                value={filtros.dataFim}
-                onChange={(e) => setFiltros({ ...filtros, dataFim: e.target.value })}
+              <select
+                value={filtros.ano ?? ''}
+                onChange={(e) => setFiltros({ ...filtros, ano: e.target.value || undefined })}
                 className="block w-full border-gray-300 rounded-md focus:ring-blue-500 focus:border-blue-500 sm:text-sm"
-              />
+              >
+                <option value="">Todos os anos</option>
+                {Array.from({ length: 10 }, (_, i) => {
+                  const year = new Date().getFullYear() - 5 + i;
+                  return (
+                    <option key={year} value={year.toString()}>
+                      {year}
+                    </option>
+                  );
+                })}
+              </select>
             </div>
           </div>
         )}
@@ -333,22 +376,15 @@ const Receitas: React.FC = () => {
             <div className="animate-spin rounded-full h-32 w-32 border-b-2 border-blue-600"></div>
           </div>
         ) : receitas.length === 0 ? (
-          <div className="text-center py-12">
-            <DollarSign className="mx-auto h-12 w-12 text-gray-400" />
-            <h3 className="mt-2 text-sm font-medium text-gray-900">Nenhuma receita encontrada</h3>
-            <p className="mt-1 text-sm text-gray-500">
-              Comece criando sua primeira receita.
-            </p>
-            <div className="mt-6">
-              <button
-                onClick={handleCreate}
-                className="inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md text-white bg-blue-600 hover:bg-blue-700"
-              >
-                <Plus className="h-4 w-4 mr-2" />
-                Nova Receita
-              </button>
-            </div>
-          </div>
+          <NoData
+            title="Nenhuma receita encontrada"
+            description="Não há receitas que correspondam aos filtros aplicados ou você ainda não criou nenhuma receita."
+            icon="search"
+            actionButton={{
+              label: "Nova Receita",
+              onClick: handleCreate
+            }}
+          />
         ) : (
           <>
             {/* Tabela */}
@@ -443,6 +479,18 @@ const Receitas: React.FC = () => {
                     </tr>
                   ))}
                 </tbody>
+                {/* Rodapé com total */}
+                <tfoot className="bg-gray-50">
+                  <tr>
+                    <td colSpan={4} className="px-6 py-4 text-right font-medium text-gray-900">
+                      Total das receitas:
+                    </td>
+                    <td className="px-6 py-4 whitespace-nowrap text-sm font-bold text-green-600">
+                      {formatCurrency(totalReceitasFiltradas)}
+                    </td>
+                    <td className="px-6 py-4"></td>
+                  </tr>
+                </tfoot>
               </table>
             </div>
 

@@ -15,6 +15,7 @@ interface DespesaState {
       dataVencimento: string;
     };
   }>;
+  totalFiltrado: number;
   pagination: {
     page: number;
     limit: number;
@@ -30,6 +31,7 @@ const initialState: DespesaState = {
   currentDespesa: null,
   estatisticas: null,
   proximasParcelasVencimento: [],
+  totalFiltrado: 0,
   pagination: {
     page: 1,
     limit: 10,
@@ -230,6 +232,7 @@ const despesaSlice = createSlice({
       .addCase(fetchDespesas.fulfilled, (state, action) => {
         state.isLoading = false;
         state.despesas = action.payload.despesas;
+        state.totalFiltrado = action.payload.totalFiltrado || 0;
         state.pagination = action.payload.pagination;
         state.error = null;
       })

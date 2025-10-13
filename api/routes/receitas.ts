@@ -34,6 +34,10 @@ router.get('/',
     categoriaId: commonSchemas.objectId.optional(),
     bancoId: commonSchemas.objectId.optional(),
     recorrente: Joi.boolean().optional(),
+    // Filtros de mês/ano
+    mes: Joi.number().integer().min(1).max(12).optional(),
+    ano: Joi.number().integer().min(2020).max(2030).optional(),
+    // Ordenação
     sort: Joi.string().valid('asc', 'desc').optional(),
     sortBy: Joi.string().valid('data', 'valor', 'descricao', 'createdAt').optional()
   })),

@@ -124,8 +124,10 @@ export class DespesaController {
         cartaoId,
         formaPagamento,
         parcelado,
-        dataInicio, 
-        dataFim, 
+        mes, 
+        ano, 
+        dataInicio,
+        dataFim,
         recorrente,
         page = 1, 
         limit = 10, 
@@ -142,18 +144,18 @@ export class DespesaController {
       }
 
       // Construir filtros
-      const filters: any = { userId };
+      const filters: any = { userId: new mongoose.Types.ObjectId(userId) };
       
       if (categoriaId) {
-        filters.categoriaId = categoriaId;
+        filters.categoriaId = new mongoose.Types.ObjectId(categoriaId as string);
       }
       
       if (bancoId) {
-        filters.bancoId = bancoId;
+        filters.bancoId = new mongoose.Types.ObjectId(bancoId as string);
       }
 
       if (cartaoId) {
-        filters.cartaoId = cartaoId;
+        filters.cartaoId = new mongoose.Types.ObjectId(cartaoId as string);
       }
 
       if (formaPagamento) {
@@ -168,14 +170,41 @@ export class DespesaController {
         filters.recorrente = recorrente === 'true';
       }
       
-      if (dataInicio || dataFim) {
-        filters.data = {};
-        if (dataInicio) {
-          filters.data.$gte = new Date(dataInicio as string);
+      // Filtro por data: prioriza dataInicio/dataFim, senão mes/ano
+      if (dataInicio && dataFim) {
+        const inicio = new Date(dataInicio as string);
+        const fim = new Date(dataFim as string);
+        // Garantir fim do dia para incluir todo o período
+        fim.setHours(23, 59, 59, 999);
+
+        if (!isNaN(inicio.getTime()) && !isNaN(fim.getTime())) {
+          filters.data = {
+            $gte: inicio,
+            $lte: fim
+          };
         }
-        if (dataFim) {
-          filters.data.$lte = new Date(dataFim as string);
-        }
+      } else if (mes && ano) {
+        const mesNum = parseInt(mes as string);
+        const anoNum = parseInt(ano as string);
+        
+        // Primeiro dia do mês
+        const inicio = new Date(anoNum, mesNum - 1, 1);
+        // Último dia do mês
+        const fim = new Date(anoNum, mesNum, 0, 23, 59, 59, 999);
+        
+        filters.data = {
+          $gte: inicio,
+          $lte: fim
+        };
+      } else if (ano) {
+        const anoNum = parseInt(ano as string);
+        const inicio = new Date(anoNum, 0, 1); // 1º de janeiro
+        const fim = new Date(anoNum, 11, 31, 23, 59, 59, 999); // 31 de dezembro
+
+        filters.data = {
+          $gte: inicio,
+          $lte: fim
+        };
       }
 
       // Configurar paginação
@@ -188,8 +217,8 @@ export class DespesaController {
       const sortOptions: any = {};
       sortOptions[sortBy as string] = sortOrder;
 
-      // Buscar despesas
-      const [despesas, total] = await Promise.all([
+      // Buscar despesas e calcular total filtrado
+      const [despesas, total, totalFiltrado] = await Promise.all([
         Despesa.find(filters)
           .populate('categoriaId', 'nome cor')
           .populate('bancoId', 'nome tipo')
@@ -198,13 +227,20 @@ export class DespesaController {
           .skip(skip)
           .limit(limitNum)
           .lean(),
-        Despesa.countDocuments(filters)
+        Despesa.countDocuments(filters),
+        Despesa.aggregate([
+          { $match: filters },
+          { $group: { _id: null, total: { $sum: '$valorTotal' } } }
+        ])
       ]);
 
-      res.status(200).json({
+      const totalValorFiltrado = totalFiltrado.length > 0 ? totalFiltrado[0].total : 0;
+
+        res.status(200).json({
         success: true,
         data: {
           despesas,
+          totalFiltrado: totalValorFiltrado,
           pagination: {
             page: pageNum,
             limit: limitNum,

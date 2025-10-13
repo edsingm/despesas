@@ -1,5 +1,5 @@
 import { createSlice, createAsyncThunk } from '@reduxjs/toolkit';
-import { dashboardApi } from '../../services/api';
+import { dashboardApi, receitaApi } from '../../services/api';
 
 export interface ResumoGeral {
   totalReceitas: number;
@@ -29,6 +29,12 @@ export interface GraficoDespesasPorCategoria {
   cores: string[];
 }
 
+export interface GraficoReceitasPorCategoria {
+  labels: string[];
+  valores: number[];
+  cores: string[];
+}
+
 export interface EvolucaoPatrimonial {
   labels: string[];
   valores: number[];
@@ -38,6 +44,7 @@ interface DashboardState {
   resumoGeral: ResumoGeral | null;
   graficoReceitasDespesas: GraficoReceitasDespesas | null;
   graficoDespesasPorCategoria: GraficoDespesasPorCategoria | null;
+  graficoReceitasPorCategoria: GraficoReceitasPorCategoria | null;
   evolucaoPatrimonial: EvolucaoPatrimonial | null;
   isLoading: boolean;
   error: string | null;
@@ -47,6 +54,7 @@ const initialState: DashboardState = {
   resumoGeral: null,
   graficoReceitasDespesas: null,
   graficoDespesasPorCategoria: null,
+  graficoReceitasPorCategoria: null,
   evolucaoPatrimonial: null,
   isLoading: false,
   error: null,
@@ -70,7 +78,7 @@ export const fetchResumoGeral = createAsyncThunk(
 
 export const fetchGraficoReceitasDespesas = createAsyncThunk(
   'dashboard/fetchGraficoReceitasDespesas',
-  async (params: { ano?: number } = {}, { rejectWithValue }) => {
+  async (params: { mes?: number; ano?: number } = {}, { rejectWithValue }) => {
     try {
       const response = await dashboardApi.getGraficoReceitasDespesas(params);
       if (response.success && response.data) {
@@ -94,6 +102,26 @@ export const fetchGraficoDespesasPorCategoria = createAsyncThunk(
       return rejectWithValue(response.message || 'Erro ao buscar gráfico de despesas por categoria');
     } catch (error: any) {
       return rejectWithValue(error.response?.data?.message || 'Erro ao buscar gráfico de despesas por categoria');
+    }
+  }
+);
+
+export const fetchGraficoReceitasPorCategoria = createAsyncThunk(
+  'dashboard/fetchGraficoReceitasPorCategoria',
+  async (params: { mes?: number; ano?: number } = {}, { rejectWithValue }) => {
+    try {
+      const response = await receitaApi.getEstatisticasReceitas(params);
+      if (response.success && response.data) {
+        const receitasPorCategoria = response.data.receitasPorCategoria || [];
+        return {
+          labels: receitasPorCategoria.map((cat: any) => cat.nome),
+          valores: receitasPorCategoria.map((cat: any) => cat.total),
+          cores: receitasPorCategoria.map((cat: any) => cat.cor || '#6B7280'),
+        } as GraficoReceitasPorCategoria;
+      }
+      return rejectWithValue(response.message || 'Erro ao buscar gráfico de receitas por categoria');
+    } catch (error: any) {
+      return rejectWithValue(error.response?.data?.message || 'Erro ao buscar gráfico de receitas por categoria');
     }
   }
 );
@@ -124,6 +152,7 @@ const dashboardSlice = createSlice({
       state.resumoGeral = null;
       state.graficoReceitasDespesas = null;
       state.graficoDespesasPorCategoria = null;
+      state.graficoReceitasPorCategoria = null;
       state.evolucaoPatrimonial = null;
       state.error = null;
     },
@@ -173,6 +202,22 @@ const dashboardSlice = createSlice({
         state.error = null;
       })
       .addCase(fetchGraficoDespesasPorCategoria.rejected, (state, action) => {
+        state.isLoading = false;
+        state.error = action.payload as string;
+      });
+
+    // Gráfico Receitas por Categoria
+    builder
+      .addCase(fetchGraficoReceitasPorCategoria.pending, (state) => {
+        state.isLoading = true;
+        state.error = null;
+      })
+      .addCase(fetchGraficoReceitasPorCategoria.fulfilled, (state, action) => {
+        state.isLoading = false;
+        state.graficoReceitasPorCategoria = action.payload;
+        state.error = null;
+      })
+      .addCase(fetchGraficoReceitasPorCategoria.rejected, (state, action) => {
         state.isLoading = false;
         state.error = action.payload as string;
       });

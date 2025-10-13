@@ -188,7 +188,7 @@ export class DashboardController {
   static async getGraficoReceitasDespesas(req: Request, res: Response): Promise<void> {
     try {
       const userId = req.userId;
-      const { ano = new Date().getFullYear() } = req.query;
+      const { mes, ano = new Date().getFullYear() } = req.query;
 
       if (!userId) {
         res.status(401).json({
@@ -197,12 +197,78 @@ export class DashboardController {
         });
         return;
       }
-
       const targetYear = parseInt(ano as string);
+      const timezone = 'America/Sao_Paulo';
+
+      // Se um mês específico foi solicitado, retornar apenas os dados desse mês
+      if (mes) {
+        const targetMonth = parseInt(mes as string);
+        const startDate = new Date(targetYear, targetMonth - 1, 1);
+        const endDate = new Date(targetYear, targetMonth, 0, 23, 59, 59);
+
+        const receitasMes = await Receita.aggregate([
+          {
+            $match: {
+              userId: new mongoose.Types.ObjectId(userId),
+              data: { $gte: startDate, $lte: endDate }
+            }
+          },
+          {
+            $group: {
+              _id: null,
+              total: { $sum: '$valor' }
+            }
+          }
+        ]);
+
+        const despesasMes = await Despesa.aggregate([
+          {
+            $match: {
+              userId: new mongoose.Types.ObjectId(userId),
+              data: { $gte: startDate, $lte: endDate }
+            }
+          },
+          {
+            $group: {
+              _id: null,
+              total: { $sum: '$valorTotal' }
+            }
+          }
+        ]);
+
+        const mesesNomes = [
+          'Jan', 'Fev', 'Mar', 'Abr', 'Mai', 'Jun',
+          'Jul', 'Ago', 'Set', 'Out', 'Nov', 'Dez'
+        ];
+
+        const totalReceitas = receitasMes[0]?.total || 0;
+        const totalDespesas = despesasMes[0]?.total || 0;
+
+        res.status(200).json({
+          success: true,
+          data: {
+            labels: [mesesNomes[targetMonth - 1]],
+            receitas: [totalReceitas],
+            despesas: [totalDespesas],
+            ano: targetYear,
+            periodo: { mes: targetMonth, ano: targetYear },
+            grafico: [
+              {
+                mes: targetMonth,
+                receitas: totalReceitas,
+                despesas: totalDespesas,
+                saldo: totalReceitas - totalDespesas
+              }
+            ]
+          }
+        });
+        return;
+      }
+
+      // Caso contrário, retornar dados do ano inteiro com agrupamento sensível ao timezone
       const startDate = new Date(targetYear, 0, 1);
       const endDate = new Date(targetYear, 11, 31, 23, 59, 59);
 
-      // Buscar receitas por mês
       const receitasPorMes = await Receita.aggregate([
         {
           $match: {
@@ -212,14 +278,15 @@ export class DashboardController {
         },
         {
           $group: {
-            _id: { $month: '$data' },
+            _id: {
+              $dateToString: { format: '%Y-%m', date: '$data', timezone }
+            },
             total: { $sum: '$valor' }
           }
         },
         { $sort: { '_id': 1 } }
       ]);
 
-      // Buscar despesas por mês
       const despesasPorMes = await Despesa.aggregate([
         {
           $match: {
@@ -229,28 +296,34 @@ export class DashboardController {
         },
         {
           $group: {
-            _id: { $month: '$data' },
+            _id: {
+              $dateToString: { format: '%Y-%m', date: '$data', timezone }
+            },
             total: { $sum: '$valorTotal' }
           }
         },
         { $sort: { '_id': 1 } }
       ]);
 
-      // Criar array com todos os meses
-      const meses = Array.from({ length: 12 }, (_, i) => i + 1);
-      const dadosGrafico = meses.map(mes => {
-        const receita = receitasPorMes.find(r => r._id === mes);
-        const despesa = despesasPorMes.find(d => d._id === mes);
+      const receitasMap: Record<string, number> = {};
+      receitasPorMes.forEach(r => { receitasMap[r._id] = r.total; });
+      const despesasMap: Record<string, number> = {};
+      despesasPorMes.forEach(d => { despesasMap[d._id] = d.total; });
 
+      const meses = Array.from({ length: 12 }, (_, i) => i + 1);
+      const pad2 = (n: number) => n.toString().padStart(2, '0');
+      const dadosGrafico = meses.map(m => {
+        const key = `${targetYear}-${pad2(m)}`;
+        const receita = receitasMap[key] || 0;
+        const despesa = despesasMap[key] || 0;
         return {
-          mes,
-          receitas: receita?.total || 0,
-          despesas: despesa?.total || 0,
-          saldo: (receita?.total || 0) - (despesa?.total || 0)
+          mes: m,
+          receitas: receita,
+          despesas: despesa,
+          saldo: receita - despesa
         };
       });
 
-      // Formatar dados para o frontend
       const mesesNomes = [
         'Jan', 'Fev', 'Mar', 'Abr', 'Mai', 'Jun',
         'Jul', 'Ago', 'Set', 'Out', 'Nov', 'Dez'
@@ -262,7 +335,6 @@ export class DashboardController {
           labels: dadosGrafico.map(item => mesesNomes[item.mes - 1]),
           receitas: dadosGrafico.map(item => item.receitas),
           despesas: dadosGrafico.map(item => item.despesas),
-          // Dados adicionais para compatibilidade
           ano: targetYear,
           grafico: dadosGrafico
         }

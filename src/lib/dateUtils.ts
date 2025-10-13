@@ -30,41 +30,26 @@ export function toLocalDateString(isoDate: string | Date): string {
  * Formata uma data no formato brasileiro (DD/MM/YYYY)
  * @param dateString - Data em formato YYYY-MM-DD ou ISO string
  */
-export function formatDateBR(dateString: string): string {
-  if (!dateString) return '';
+export function formatDateBR(dateInput: string | Date): string {
+  if (!dateInput) return '';
   
-  console.log('[formatDateBR] Input:', dateString);
-  
-  // Se a data estiver no formato YYYY-MM-DD, vamos tratá-la como data local
-  if (dateString.match(/^\d{4}-\d{2}-\d{2}$/)) {
-    const [year, month, day] = dateString.split('-');
-    const result = `${day}/${month}/${year}`;
-    console.log('[formatDateBR] Formato YYYY-MM-DD, resultado:', result);
-    return result;
+  // Se já vier como YYYY-MM-DD, formatar diretamente
+  const inputStr = typeof dateInput === 'string' ? dateInput : dateInput.toISOString();
+  if (inputStr.match(/^\d{4}-\d{2}-\d{2}$/)) {
+    const [year, month, day] = inputStr.split('-');
+    return `${day}/${month}/${year}`;
   }
-  
-  // Para datas ISO completas, extrair apenas a parte da data
-  // e ignorar o timezone para evitar mudança de dia
-  const dateOnly = dateString.split('T')[0];
-  console.log('[formatDateBR] ISO date, parte da data:', dateOnly);
-  
-  if (dateOnly.match(/^\d{4}-\d{2}-\d{2}$/)) {
-    const [year, month, day] = dateOnly.split('-');
-    const result = `${day}/${month}/${year}`;
-    console.log('[formatDateBR] Resultado:', result);
-    return result;
-  }
-  
-  // Fallback: usar toLocaleDateString
-  const date = new Date(dateString);
-  const result = date.toLocaleDateString('pt-BR', {
+
+  // Para ISO strings ou Date, usar timezone explícito na formatação
+  const date = typeof dateInput === 'string' ? new Date(inputStr) : dateInput;
+  if (isNaN(date.getTime())) return '';
+
+  return date.toLocaleDateString('pt-BR', {
     day: '2-digit',
     month: '2-digit',
     year: 'numeric',
     timeZone: 'America/Sao_Paulo'
   });
-  console.log('[formatDateBR] Fallback, resultado:', result);
-  return result;
 }
 
 /**

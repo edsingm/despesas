@@ -4,6 +4,7 @@ import {
   fetchResumoGeral,
   fetchGraficoReceitasDespesas,
   fetchGraficoDespesasPorCategoria,
+  fetchGraficoReceitasPorCategoria,
   fetchEvolucaoPatrimonial
 } from '../store/slices/dashboardSlice';
 import { 
@@ -50,6 +51,7 @@ const Dashboard: React.FC = () => {
     resumoGeral,
     graficoReceitasDespesas,
     graficoDespesasPorCategoria,
+    graficoReceitasPorCategoria,
     evolucaoPatrimonial,
     isLoading,
     error
@@ -66,8 +68,9 @@ const Dashboard: React.FC = () => {
   useEffect(() => {
     // Buscar dados do dashboard
     dispatch(fetchResumoGeral(mesAno));
-    dispatch(fetchGraficoReceitasDespesas({ ano: mesAno.ano }));
+    dispatch(fetchGraficoReceitasDespesas({ mes: mesAno.mes, ano: mesAno.ano }));
     dispatch(fetchGraficoDespesasPorCategoria(mesAno));
+    dispatch(fetchGraficoReceitasPorCategoria(mesAno));
     dispatch(fetchEvolucaoPatrimonial({ meses: 6 }));
   }, [dispatch, mesAno]);
 
@@ -210,6 +213,54 @@ const Dashboard: React.FC = () => {
     },
   };
 
+  const graficoReceitasCategoriaConfig = {
+    data: {
+      labels: graficoReceitasPorCategoria?.labels || [],
+      datasets: [
+        {
+          data: graficoReceitasPorCategoria?.valores || [],
+          backgroundColor: (
+            graficoReceitasPorCategoria?.cores && graficoReceitasPorCategoria.cores.length > 0
+              ? graficoReceitasPorCategoria.cores
+              : [
+                  '#22C55E',
+                  '#10B981',
+                  '#34D399',
+                  '#059669',
+                  '#16A34A',
+                  '#65A30D',
+                  '#4ADE80',
+                  '#A7F3D0',
+                ]
+          ),
+          borderWidth: 1,
+        },
+      ],
+    },
+    options: {
+      responsive: true,
+      plugins: {
+        legend: {
+          position: 'right' as const,
+        },
+        title: {
+          display: true,
+          text: 'Receitas por Categoria',
+        },
+        tooltip: {
+          callbacks: {
+            label: function(context: any) {
+              const value = context.parsed;
+              const total = context.dataset.data.reduce((a: number, b: number) => a + b, 0);
+              const percentage = ((value / total) * 100).toFixed(1);
+              return `${context.label}: ${formatCurrency(value)} (${percentage}%)`;
+            },
+          },
+        },
+      },
+    },
+  };
+
   const evolucaoPatrimonialConfig = {
     data: {
       labels: evolucaoPatrimonial?.labels || [],
@@ -324,7 +375,7 @@ const Dashboard: React.FC = () => {
       </div>
 
       {/* Gráficos */}
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
         {/* Gráfico de Receitas vs Despesas */}
         <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-6">
           <div className="flex items-center mb-4">
@@ -355,6 +406,25 @@ const Dashboard: React.FC = () => {
           {graficoDespesasPorCategoria && graficoDespesasPorCategoria.labels && graficoDespesasPorCategoria.labels.length > 0 ? (
             <div className="h-80">
               <Doughnut {...graficoDespesasCategoriaConfig} />
+            </div>
+          ) : (
+            <div className="h-80 flex items-center justify-center text-gray-500">
+              Nenhum dado disponível
+            </div>
+          )}
+        </div>
+
+        {/* Gráfico de Receitas por Categoria */}
+        <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-6">
+          <div className="flex items-center mb-4">
+            <PieChart className="h-5 w-5 text-green-600 mr-2" />
+            <h3 className="text-lg font-medium text-gray-900">
+              Receitas por Categoria
+            </h3>
+          </div>
+          {graficoReceitasPorCategoria && graficoReceitasPorCategoria.labels && graficoReceitasPorCategoria.labels.length > 0 ? (
+            <div className="h-80">
+              <Doughnut {...graficoReceitasCategoriaConfig} />
             </div>
           ) : (
             <div className="h-80 flex items-center justify-center text-gray-500">

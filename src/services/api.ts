@@ -238,7 +238,7 @@ export const receitaApi = {
     return apiService['handleResponse'](response);
   },
 
-  getEstatisticasReceitas: async (params?: { dataInicio?: string; dataFim?: string }): Promise<ApiResponse<EstatisticasReceita>> => {
+  getEstatisticasReceitas: async (params?: { mes?: number; ano?: number; dataInicio?: string; dataFim?: string }): Promise<ApiResponse<EstatisticasReceita>> => {
     const response = await apiService['api'].get('/receitas/estatisticas', { params });
     return apiService['handleResponse'](response);
   },
@@ -350,7 +350,7 @@ export const dashboardApi = {
     return apiService['handleResponse'](response);
   },
 
-  getGraficoReceitasDespesas: async (params?: { ano?: number }): Promise<ApiResponse<any>> => {
+  getGraficoReceitasDespesas: async (params?: { mes?: number; ano?: number }): Promise<ApiResponse<any>> => {
     const response = await apiService['api'].get('/dashboard/grafico-receitas-despesas', { params });
     return apiService['handleResponse'](response);
   },

@@ -258,6 +258,8 @@ export interface FiltroReceita extends FiltroData, FiltroPaginacao {
   categoriaId?: string;
   bancoId?: string;
   recorrente?: boolean;
+  mes?: string;
+  ano?: string;
 }
 
 export interface FiltroDespesa extends FiltroData, FiltroPaginacao {
@@ -267,6 +269,8 @@ export interface FiltroDespesa extends FiltroData, FiltroPaginacao {
   formaPagamento?: 'debito' | 'credito' | 'dinheiro' | 'pix' | 'transferencia';
   parcelado?: boolean;
   recorrente?: boolean;
+  mes?: string;
+  ano?: string;
 }
 
 // Tipos para UI

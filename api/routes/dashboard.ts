@@ -29,6 +29,7 @@ router.get('/resumo',
  */
 router.get('/grafico-receitas-despesas', 
   validateQuery(Joi.object({
+    mes: Joi.number().integer().min(1).max(12).optional(),
     ano: Joi.number().integer().min(2020).max(2030).optional()
   })),
   DashboardController.getGraficoReceitasDespesas

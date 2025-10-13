@@ -110,15 +110,15 @@ export class ReceitaController {
       const { 
         categoriaId, 
         bancoId, 
-        dataInicio, 
-        dataFim, 
+        mes, 
+        ano, 
         recorrente,
         page = 1, 
         limit = 10, 
         sort = 'desc', 
         sortBy = 'data' 
       } = req.query;
-
+ 
       if (!userId) {
         res.status(401).json({
           success: false,
@@ -128,29 +128,50 @@ export class ReceitaController {
       }
 
       // Construir filtros
-      const filters: any = { userId };
+      const filters: any = { userId: new mongoose.Types.ObjectId(userId) };
       
       if (categoriaId) {
-        filters.categoriaId = categoriaId;
+        filters.categoriaId = new mongoose.Types.ObjectId(categoriaId as string);
       }
       
       if (bancoId) {
-        filters.bancoId = bancoId;
+        filters.bancoId = new mongoose.Types.ObjectId(bancoId as string);
       }
       
       if (recorrente !== undefined) {
         filters.recorrente = recorrente === 'true';
       }
       
-      if (dataInicio || dataFim) {
-        filters.data = {};
-        if (dataInicio) {
-          filters.data.$gte = new Date(dataInicio as string);
+      // Filtro por mês e ano
+      if (mes && ano) {
+        const mesNum = parseInt(mes as string);
+        const anoNum = parseInt(ano as string);
+        
+        // Primeiro dia do mês
+        const dataInicio = new Date(anoNum, mesNum - 1, 1);
+        // Último dia do mês
+        const dataFim = new Date(anoNum, mesNum, 0, 23, 59, 59, 999);
+        
+        filters.data = {
+          $gte: dataInicio,
+          $lte: dataFim
+        };
+      } else if (mes || ano) {
+        // Se apenas um dos filtros foi fornecido
+        if (ano) {
+          const anoNum = parseInt(ano as string);
+          const dataInicio = new Date(anoNum, 0, 1); // 1º de janeiro
+          const dataFim = new Date(anoNum, 11, 31, 23, 59, 59, 999); // 31 de dezembro
+          
+          filters.data = {
+            $gte: dataInicio,
+            $lte: dataFim
+          };
         }
-        if (dataFim) {
-          filters.data.$lte = new Date(dataFim as string);
-        }
+        // Se apenas mês foi fornecido, ignoramos (precisa do ano também)
       }
+
+
 
       // Configurar paginação
       const pageNum = parseInt(page as string);
@@ -162,8 +183,8 @@ export class ReceitaController {
       const sortOptions: any = {};
       sortOptions[sortBy as string] = sortOrder;
 
-      // Buscar receitas
-      const [receitas, total] = await Promise.all([
+      // Buscar receitas e calcular total filtrado
+      const [receitas, total, totalFiltrado] = await Promise.all([
         Receita.find(filters)
           .populate('categoriaId', 'nome cor')
           .populate('bancoId', 'nome tipo')
@@ -171,13 +192,20 @@ export class ReceitaController {
           .skip(skip)
           .limit(limitNum)
           .lean(),
-        Receita.countDocuments(filters)
+        Receita.countDocuments(filters),
+        Receita.aggregate([
+          { $match: filters },
+          { $group: { _id: null, total: { $sum: '$valor' } } }
+        ])
       ]);
 
-      res.status(200).json({
+      const totalValorFiltrado = totalFiltrado.length > 0 ? totalFiltrado[0].total : 0;
+
+        res.status(200).json({
         success: true,
         data: {
           receitas,
+          totalFiltrado: totalValorFiltrado,
           pagination: {
             page: pageNum,
             limit: limitNum,

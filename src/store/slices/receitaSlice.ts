@@ -7,6 +7,7 @@ interface ReceitaState {
   currentReceita: Receita | null;
   estatisticas: EstatisticasReceita | null;
   proximasRecorrentes: Receita[];
+  totalFiltrado: number;
   pagination: {
     page: number;
     limit: number;
@@ -22,6 +23,7 @@ const initialState: ReceitaState = {
   currentReceita: null,
   estatisticas: null,
   proximasRecorrentes: [],
+  totalFiltrado: 0,
   pagination: {
     page: 1,
     limit: 10,
@@ -183,6 +185,7 @@ const receitaSlice = createSlice({
       .addCase(fetchReceitas.fulfilled, (state, action) => {
         state.isLoading = false;
         state.receitas = action.payload.receitas;
+        state.totalFiltrado = action.payload.totalFiltrado || 0;
         state.pagination = action.payload.pagination;
         state.error = null;
       })
