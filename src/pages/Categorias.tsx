@@ -26,7 +26,7 @@ const Categorias: React.FC = () => {
   const [isDeleting, setIsDeleting] = useState(false);
 
   useEffect(() => {
-    dispatch(fetchCategorias({}));
+    dispatch(fetchCategorias({limit:100}));
   }, [dispatch]);
 
 

@@ -113,7 +113,8 @@ export const fetchCategoriasReceita = createAsyncThunk(
   async (_, { rejectWithValue }) => {
     try {
       console.log('[fetchCategoriasReceita] Iniciando busca...');
-      const response = await categoriaApi.getCategorias({ tipo: 'receita' });
+      // Buscar uma quantidade grande para preencher os selects dos modais
+      const response = await categoriaApi.getCategorias({ tipo: 'receita', page: 1, limit: 100 });
       console.log('[fetchCategoriasReceita] Resposta recebida:', response);
       if (response.success && response.data) {
         console.log('[fetchCategoriasReceita] Categorias encontradas:', response.data.categorias?.length || 0);
@@ -133,7 +134,8 @@ export const fetchCategoriasDespesa = createAsyncThunk(
   async (_, { rejectWithValue }) => {
     try {
       console.log('[fetchCategoriasDespesa] Iniciando busca...');
-      const response = await categoriaApi.getCategorias({ tipo: 'despesa' });
+      // Buscar uma quantidade grande para preencher os selects dos modais
+      const response = await categoriaApi.getCategorias({ tipo: 'despesa', page: 1, limit: 100 });
       console.log('[fetchCategoriasDespesa] Resposta recebida:', response);
       if (response.success && response.data) {
         console.log('[fetchCategoriasDespesa] Categorias encontradas:', response.data.categorias?.length || 0);
