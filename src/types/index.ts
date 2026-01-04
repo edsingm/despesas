@@ -98,6 +98,29 @@ export interface Despesa {
   updatedAt: string;
 }
 
+export interface ProximoVencimento {
+  cartao: {
+    id: string;
+    nome: string;
+  };
+  dataVencimento: string;
+  valorFatura: number;
+  diasRestantes: number;
+}
+
+export interface ProximaParcela {
+  despesaId: string;
+  parcelaIndex: number;
+  descricao: string;
+  categoria: any;
+  cartao: any;
+  numeroParcela: number;
+  totalParcelas: number;
+  valor: number;
+  dataVencimento: string;
+  diasRestantes: number;
+}
+
 // Tipos para formulários
 export interface LoginForm {
   email: string;

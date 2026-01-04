@@ -8,7 +8,7 @@ export class ReceitaController {
    */
   static async create(req: Request, res: Response): Promise<void> {
     try {
-      const userId = req.user?.id;
+      const userId = req.userId;
       if (!userId) {
         res.status(401).json({ success: false, message: 'Usuário não autenticado' });
         return;

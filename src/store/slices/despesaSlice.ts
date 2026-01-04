@@ -1,20 +1,12 @@
 import { createSlice, createAsyncThunk, PayloadAction } from '@reduxjs/toolkit';
-import { Despesa, DespesaForm, PaginatedResponse, EstatisticasDespesa, FiltroDespesa } from '../../types';
+import { Despesa, DespesaForm, PaginatedResponse, EstatisticasDespesa, FiltroDespesa, ProximaParcela } from '../../types';
 import { despesaApi } from '../../services/api';
 
 interface DespesaState {
   despesas: Despesa[];
   currentDespesa: Despesa | null;
   estatisticas: EstatisticasDespesa | null;
-  proximasParcelasVencimento: Array<{
-    despesaId: string;
-    descricao: string;
-    parcela: {
-      numero: number;
-      valor: number;
-      dataVencimento: string;
-    };
-  }>;
+  proximasParcelasVencimento: ProximaParcela[];
   totalFiltrado: number;
   pagination: {
     page: number;

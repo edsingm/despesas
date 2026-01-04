@@ -15,6 +15,8 @@ import {
   DespesaForm,
   ApiResponse,
   PaginatedResponse,
+  ProximoVencimento,
+  ProximaParcela,
   EstatisticasReceita,
   EstatisticasDespesa,
   FiltroReceita,
@@ -206,7 +208,7 @@ export const cartaoApi = {
     return apiService.handleResponse(response);
   },
 
-  getProximosVencimentos: async (): Promise<ApiResponse<{ proximosVencimentos: Despesa[] }>> => {
+  getProximosVencimentos: async (): Promise<ApiResponse<{ proximosVencimentos: ProximoVencimento[] }>> => {
     const response = await apiService.api.get('/cartoes/proximos-vencimentos');
     return apiService.handleResponse(response);
   },
@@ -305,7 +307,7 @@ export const despesaApi = {
     return apiService.handleResponse(response);
   },
 
-  getProximasParcelasVencimento: async (): Promise<ApiResponse<{ proximasParcelas: Array<Despesa & { numeroParcela: number }> }>> => {
+  getProximasParcelasVencimento: async (): Promise<ApiResponse<{ proximasParcelas: ProximaParcela[] }>> => {
     const response = await apiService.api.get('/despesas/proximas-parcelas-vencimento');
     return apiService.handleResponse(response);
   },

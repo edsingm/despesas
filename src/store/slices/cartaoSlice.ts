@@ -1,5 +1,5 @@
 import { createSlice, createAsyncThunk, PayloadAction } from '@reduxjs/toolkit';
-import { Cartao, CartaoForm, PaginatedResponse } from '../../types';
+import { Cartao, CartaoForm, PaginatedResponse, ProximoVencimento } from '../../types';
 import { cartaoApi } from '../../services/api';
 
 interface CartaoState {
@@ -7,12 +7,7 @@ interface CartaoState {
   cartoesAtivos: Cartao[];
   currentCartao: Cartao | null;
   limiteConsolidado: number;
-  proximosVencimentos: Array<{
-    cartaoId: string;
-    cartaoNome: string;
-    dataVencimento: string;
-    valorFatura: number;
-  }>;
+  proximosVencimentos: ProximoVencimento[];
   pagination: {
     page: number;
     limit: number;
