@@ -57,6 +57,14 @@ export class AuthController {
    */
   static async getProfile(req: Request, res: Response): Promise<void> {
     try {
+      if (!req.user) {
+        res.status(401).json({
+          success: false,
+          message: 'Usuário não autenticado'
+        });
+        return;
+      }
+      
       const user = await AuthService.getProfile(req.user);
 
       res.status(200).json({
@@ -144,6 +152,14 @@ export class AuthController {
    */
   static async verifyToken(req: Request, res: Response): Promise<void> {
     try {
+      if (!req.user) {
+        res.status(401).json({
+          success: false,
+          message: 'Usuário não autenticado'
+        });
+        return;
+      }
+
       const user = await AuthService.verifyToken(req.user);
 
       res.status(200).json({
