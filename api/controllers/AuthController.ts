@@ -1,7 +1,5 @@
 import { Request, Response } from 'express';
-import { User } from '../models/User.js';
-import { generateToken } from '../middleware/auth.js';
-import { seedDefaultsForUser } from '../services/userBootstrap.js';
+import { AuthService } from '../services/AuthService.js';
 
 export class AuthController {
   /**
@@ -9,56 +7,21 @@ export class AuthController {
    */
   static async register(req: Request, res: Response): Promise<void> {
     try {
-      const { name, email, password } = req.body;
-
-      // Verificar se usuário já existe
-      const existingUser = await User.findOne({ email });
-      if (existingUser) {
-        res.status(409).json({
-          success: false,
-          message: 'Email já está em uso'
-        });
-        return;
-      }
-
-      // Criar novo usuário
-      const user = new User({
-        name,
-        email,
-        passwordHash: password // Será hasheado pelo middleware do modelo
-      });
-
-      await user.save();
-
-      // Semear dados padrão para o novo usuário (categorias)
-      try {
-        await seedDefaultsForUser(user._id as any);
-      } catch (seedError) {
-        console.error('Erro ao semear dados padrão para usuário:', seedError);
-        // Não bloquear o registro se o seed falhar
-      }
-
-      // Gerar token JWT
-      const token = generateToken(user);
+      const result = await AuthService.register(req.body);
 
       res.status(201).json({
         success: true,
         message: 'Usuário criado com sucesso',
-        data: {
-          user: {
-            id: user._id,
-            name: user.name,
-            email: user.email,
-            createdAt: user.createdAt
-          },
-          token
-        }
+        data: result
       });
-    } catch (error) {
+    } catch (error: any) {
       console.error('Erro no registro:', error);
-      res.status(500).json({
+      
+      const statusCode = error.message === 'Email já está em uso' ? 409 : 500;
+      
+      res.status(statusCode).json({
         success: false,
-        message: 'Erro interno do servidor'
+        message: error.message || 'Erro interno do servidor'
       });
     }
   }
@@ -69,62 +32,22 @@ export class AuthController {
   static async login(req: Request, res: Response): Promise<void> {
     try {
       console.log('🔐 LOGIN: Método login chamado');
-      const { email, password } = req.body;
-      console.log('🔐 LOGIN: Dados recebidos:', { email, password: password ? '***' : 'undefined' });
+      const result = await AuthService.login(req.body);
+      console.log('✅ LOGIN: Resposta enviada com sucesso');
 
-      // Buscar usuário por email
-      console.log('🔍 LOGIN: Buscando usuário no banco de dados...');
-      const user = await User.findOne({ email });
-      console.log('🔍 LOGIN: Usuário encontrado:', user ? `ID: ${user._id}, Email: ${user.email}` : 'Nenhum usuário encontrado');
-      
-      if (!user) {
-        console.log('❌ LOGIN: Usuário não encontrado');
-        res.status(401).json({
-          success: false,
-          message: 'Email ou senha inválidos'
-        });
-        return;
-      }
-
-      // Verificar senha
-      console.log('🔑 LOGIN: Verificando senha...');
-      const isPasswordValid = await user.comparePassword(password);
-      console.log('🔑 LOGIN: Senha válida:', isPasswordValid);
-      
-      if (!isPasswordValid) {
-        console.log('❌ LOGIN: Senha inválida');
-        res.status(401).json({
-          success: false,
-          message: 'Email ou senha inválidos'
-        });
-        return;
-      }
-
-      // Gerar token JWT
-      console.log('🎫 LOGIN: Gerando token JWT...');
-      const token = generateToken(user);
-      console.log('🎫 LOGIN: Token gerado:', token ? 'Sucesso' : 'Falha');
-
-      console.log('✅ LOGIN: Enviando resposta de sucesso');
       res.status(200).json({
         success: true,
         message: 'Login realizado com sucesso',
-        data: {
-          user: {
-            id: user._id,
-            name: user.name,
-            email: user.email,
-            createdAt: user.createdAt
-          },
-          token
-        }
+        data: result
       });
-      console.log('✅ LOGIN: Resposta enviada com sucesso');
-    } catch (error) {
+    } catch (error: any) {
       console.error('💥 LOGIN: Erro no login:', error);
-      res.status(500).json({
+      
+      const statusCode = error.message === 'Email ou senha inválidos' ? 401 : 500;
+
+      res.status(statusCode).json({
         success: false,
-        message: 'Erro interno do servidor'
+        message: error.message || 'Erro interno do servidor'
       });
     }
   }
@@ -134,33 +57,20 @@ export class AuthController {
    */
   static async getProfile(req: Request, res: Response): Promise<void> {
     try {
-      const user = req.user;
-      
-      if (!user) {
-        res.status(401).json({
-          success: false,
-          message: 'Usuário não autenticado'
-        });
-        return;
-      }
+      const user = await AuthService.getProfile(req.user);
 
       res.status(200).json({
         success: true,
-        data: {
-          user: {
-            id: user._id,
-            name: user.name,
-            email: user.email,
-            createdAt: user.createdAt,
-            updatedAt: user.updatedAt
-          }
-        }
+        data: { user }
       });
-    } catch (error) {
+    } catch (error: any) {
       console.error('Erro ao obter perfil:', error);
-      res.status(500).json({
+      
+      const statusCode = error.message === 'Usuário não autenticado' ? 401 : 500;
+
+      res.status(statusCode).json({
         success: false,
-        message: 'Erro interno do servidor'
+        message: error.message || 'Erro interno do servidor'
       });
     }
   }
@@ -171,81 +81,29 @@ export class AuthController {
   static async updateProfile(req: Request, res: Response): Promise<void> {
     try {
       const userId = req.userId;
-      const { name, email } = req.body;
-
       if (!userId) {
-        res.status(401).json({
-          success: false,
-          message: 'Usuário não autenticado'
-        });
+        res.status(401).json({ success: false, message: 'Usuário não autenticado' });
         return;
       }
 
-      // Verificar se email já está em uso por outro usuário
-      if (email) {
-        const existingUser = await User.findOne({ 
-          email, 
-          _id: { $ne: userId } 
-        });
-        
-        if (existingUser) {
-          res.status(409).json({
-            success: false,
-            message: 'Email já está em uso'
-          });
-          return;
-        }
-      }
-
-      // Atualizar usuário
-      const updatedUser = await User.findByIdAndUpdate(
-        userId,
-        { 
-          ...(name && { name }),
-          ...(email && { email })
-        },
-        { 
-          new: true,
-          runValidators: true
-        }
-      );
-
-      if (!updatedUser) {
-        res.status(404).json({
-          success: false,
-          message: 'Usuário não encontrado'
-        });
-        return;
-      }
+      const user = await AuthService.updateProfile(userId, req.body);
 
       res.status(200).json({
         success: true,
         message: 'Perfil atualizado com sucesso',
-        data: {
-          user: {
-            id: updatedUser._id,
-            name: updatedUser.name,
-            email: updatedUser.email,
-            createdAt: updatedUser.createdAt,
-            updatedAt: updatedUser.updatedAt
-          }
-        }
+        data: { user }
       });
-    } catch (error) {
+    } catch (error: any) {
       console.error('Erro ao atualizar perfil:', error);
       
-      if (error instanceof Error && error.message.includes('validation')) {
-        res.status(400).json({
-          success: false,
-          message: 'Dados inválidos',
-          error: error.message
-        });
-        return;
-      }
+      let statusCode = 500;
+      if (error.message === 'Email já está em uso') statusCode = 409;
+      if (error.message === 'Usuário não encontrado') statusCode = 404;
+      if (error.message.includes('validation')) statusCode = 400;
 
-      res.status(500).json({
+      res.status(statusCode).json({
         success: false,
-        message: 'Erro interno do servidor'
+        message: error.message || 'Erro interno do servidor'
       });
     }
   }
@@ -256,49 +114,27 @@ export class AuthController {
   static async changePassword(req: Request, res: Response): Promise<void> {
     try {
       const userId = req.userId;
-      const { currentPassword, newPassword } = req.body;
-
       if (!userId) {
-        res.status(401).json({
-          success: false,
-          message: 'Usuário não autenticado'
-        });
+        res.status(401).json({ success: false, message: 'Usuário não autenticado' });
         return;
       }
 
-      // Buscar usuário
-      const user = await User.findById(userId);
-      if (!user) {
-        res.status(404).json({
-          success: false,
-          message: 'Usuário não encontrado'
-        });
-        return;
-      }
-
-      // Verificar senha atual
-      const isCurrentPasswordValid = await user.comparePassword(currentPassword);
-      if (!isCurrentPasswordValid) {
-        res.status(401).json({
-          success: false,
-          message: 'Senha atual inválida'
-        });
-        return;
-      }
-
-      // Atualizar senha
-      user.passwordHash = newPassword; // Será hasheado pelo middleware
-      await user.save();
+      await AuthService.changePassword(userId, req.body);
 
       res.status(200).json({
         success: true,
         message: 'Senha alterada com sucesso'
       });
-    } catch (error) {
+    } catch (error: any) {
       console.error('Erro ao alterar senha:', error);
-      res.status(500).json({
+      
+      let statusCode = 500;
+      if (error.message === 'Usuário não encontrado') statusCode = 404;
+      if (error.message === 'Senha atual inválida') statusCode = 401;
+
+      res.status(statusCode).json({
         success: false,
-        message: 'Erro interno do servidor'
+        message: error.message || 'Erro interno do servidor'
       });
     }
   }
@@ -308,32 +144,21 @@ export class AuthController {
    */
   static async verifyToken(req: Request, res: Response): Promise<void> {
     try {
-      const user = req.user;
-      
-      if (!user) {
-        res.status(401).json({
-          success: false,
-          message: 'Token inválido'
-        });
-        return;
-      }
+      const user = await AuthService.verifyToken(req.user);
 
       res.status(200).json({
         success: true,
         message: 'Token válido',
-        data: {
-          user: {
-            id: user._id,
-            name: user.name,
-            email: user.email
-          }
-        }
+        data: { user }
       });
-    } catch (error) {
+    } catch (error: any) {
       console.error('Erro na verificação do token:', error);
-      res.status(500).json({
+      
+      const statusCode = error.message === 'Token inválido' ? 401 : 500;
+
+      res.status(statusCode).json({
         success: false,
-        message: 'Erro interno do servidor'
+        message: error.message || 'Erro interno do servidor'
       });
     }
   }

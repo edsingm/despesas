@@ -27,12 +27,5 @@ export const store = configureStore({
     }),
 });
 
-// Inicializar autenticação se houver token válido
-const token = localStorage.getItem('token');
-if (token) {
-  console.log('🚀 Inicializando autenticação com token existente');
-  store.dispatch(initializeAuth());
-}
-
 export type RootState = ReturnType<typeof store.getState>;
 export type AppDispatch = typeof store.dispatch;

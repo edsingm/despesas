@@ -10,10 +10,12 @@ interface AuthState {
   error: string | null;
 }
 
+const isClient = typeof window !== 'undefined';
+
 const initialState: AuthState = {
   user: null,
-  token: localStorage.getItem('token'),
-  isAuthenticated: !!localStorage.getItem('token'),
+  token: isClient ? localStorage.getItem('token') : null,
+  isAuthenticated: isClient ? !!localStorage.getItem('token') : false,
   isLoading: false,
   error: null,
 };

@@ -24,7 +24,7 @@ const initialState: BancoState = {
   saldoConsolidado: 0,
   pagination: {
     page: 1,
-    limit: 10,
+    limit: 50,
     total: 0,
     pages: 0,
   },

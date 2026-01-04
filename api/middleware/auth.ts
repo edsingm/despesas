@@ -66,7 +66,7 @@ export const authenticateToken = async (
 
     // Adicionar usuário e userId ao request
     req.user = user;
-    req.userId = user._id.toString();
+    req.userId = (user._id as any).toString();
     
     next();
   } catch (error) {
@@ -124,7 +124,7 @@ export const optionalAuth = async (
     
     if (user) {
       req.user = user;
-      req.userId = user._id.toString();
+      req.userId = (user._id as any).toString();
     }
     
     next();
@@ -146,7 +146,7 @@ export const generateToken = (user: IUser): string => {
   }
   
   const payload: JWTPayload = {
-    userId: user._id.toString(),
+    userId: (user._id as any).toString(),
     email: user.email
   };
   

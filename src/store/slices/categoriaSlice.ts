@@ -24,7 +24,7 @@ const initialState: CategoriaState = {
   currentCategoria: null,
   pagination: {
     page: 1,
-    limit: 10,
+    limit: 12,
     total: 0,
     pages: 0,
   },
@@ -35,7 +35,7 @@ const initialState: CategoriaState = {
 // Async thunks
 export const fetchCategorias = createAsyncThunk(
   'categoria/fetchCategorias',
-  async (params: { tipo?: 'receita' | 'despesa'; ativa?: boolean; page?: number; limit?: number } | undefined, { rejectWithValue }) => {
+  async (params: { tipo?: 'receita' | 'despesa'; ativa?: boolean; page?: number; limit?: number; busca?: string } | undefined, { rejectWithValue }) => {
     try {
       const response = await categoriaApi.getCategorias(params);
       if (response.success && response.data) {

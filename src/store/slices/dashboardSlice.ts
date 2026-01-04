@@ -1,21 +1,11 @@
 import { createSlice, createAsyncThunk } from '@reduxjs/toolkit';
 import { dashboardApi, receitaApi } from '../../services/api';
-
-export interface ResumoGeral {
-  totalReceitas: number;
-  totalDespesas: number;
-  saldoTotal: number;
-  saldoLiquido: number;
-  limiteTotalCartoes: number;
-  totalCategorias: number;
-  percentualGasto?: number;
-  proximosVencimentos: Array<{
-    descricao: string;
-    valor: number;
-    dataVencimento: Date;
-    tipo: 'parcela' | 'recorrente';
-  }>;
-}
+import { 
+  ResumoGeral, 
+  GraficoPizzaData, 
+  GraficoLinhaData,
+  CategoriaEstatistica
+} from '../../types';
 
 export interface GraficoReceitasDespesas {
   labels: string[];
@@ -23,19 +13,13 @@ export interface GraficoReceitasDespesas {
   despesas: number[];
 }
 
-export interface GraficoDespesasPorCategoria {
+export interface GraficoPizzaFormatted {
   labels: string[];
   valores: number[];
   cores: string[];
 }
 
-export interface GraficoReceitasPorCategoria {
-  labels: string[];
-  valores: number[];
-  cores: string[];
-}
-
-export interface EvolucaoPatrimonial {
+export interface EvolucaoPatrimonialFormatted {
   labels: string[];
   valores: number[];
 }
@@ -43,9 +27,9 @@ export interface EvolucaoPatrimonial {
 interface DashboardState {
   resumoGeral: ResumoGeral | null;
   graficoReceitasDespesas: GraficoReceitasDespesas | null;
-  graficoDespesasPorCategoria: GraficoDespesasPorCategoria | null;
-  graficoReceitasPorCategoria: GraficoReceitasPorCategoria | null;
-  evolucaoPatrimonial: EvolucaoPatrimonial | null;
+  graficoDespesasPorCategoria: GraficoPizzaFormatted | null;
+  graficoReceitasPorCategoria: GraficoPizzaFormatted | null;
+  evolucaoPatrimonial: EvolucaoPatrimonialFormatted | null;
   isLoading: boolean;
   error: string | null;
 }
@@ -82,7 +66,12 @@ export const fetchGraficoReceitasDespesas = createAsyncThunk(
     try {
       const response = await dashboardApi.getGraficoReceitasDespesas(params);
       if (response.success && response.data) {
-        return response.data;
+        const data = response.data;
+        return {
+          labels: data.map(item => `${item._id.mes}/${item._id.ano}`),
+          receitas: data.map(item => item.receitas),
+          despesas: data.map(item => item.despesas),
+        } as GraficoReceitasDespesas;
       }
       return rejectWithValue(response.message || 'Erro ao buscar gráfico de receitas vs despesas');
     } catch (error: any) {
@@ -97,7 +86,12 @@ export const fetchGraficoDespesasPorCategoria = createAsyncThunk(
     try {
       const response = await dashboardApi.getGraficoDespesasPorCategoria(params);
       if (response.success && response.data) {
-        return response.data;
+        const data = response.data;
+        return {
+          labels: data.map(item => item.nome),
+          valores: data.map(item => item.total),
+          cores: data.map(item => item.cor),
+        } as GraficoPizzaFormatted;
       }
       return rejectWithValue(response.message || 'Erro ao buscar gráfico de despesas por categoria');
     } catch (error: any) {
@@ -114,10 +108,10 @@ export const fetchGraficoReceitasPorCategoria = createAsyncThunk(
       if (response.success && response.data) {
         const receitasPorCategoria = response.data.receitasPorCategoria || [];
         return {
-          labels: receitasPorCategoria.map((cat: any) => cat.nome),
-          valores: receitasPorCategoria.map((cat: any) => cat.total),
-          cores: receitasPorCategoria.map((cat: any) => cat.cor || '#6B7280'),
-        } as GraficoReceitasPorCategoria;
+          labels: receitasPorCategoria.map((cat: CategoriaEstatistica) => cat.nome),
+          valores: receitasPorCategoria.map((cat: CategoriaEstatistica) => cat.total),
+          cores: receitasPorCategoria.map((cat: CategoriaEstatistica) => cat.cor || '#6B7280'),
+        } as GraficoPizzaFormatted;
       }
       return rejectWithValue(response.message || 'Erro ao buscar gráfico de receitas por categoria');
     } catch (error: any) {

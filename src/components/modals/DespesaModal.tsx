@@ -1,13 +1,29 @@
 import { useState, useEffect } from 'react';
-import { useAppDispatch, useAppSelector } from '../../store/hooks';
-import { createDespesa, updateDespesa, fetchDespesas } from '../../store/slices/despesaSlice';
-import { fetchCategoriasDespesa } from '../../store/slices/categoriaSlice';
-import { fetchBancos } from '../../store/slices/bancoSlice';
-import { fetchCartoes } from '../../store/slices/cartaoSlice';
-import Modal from '../Modal';
-import CurrencyInput from '../CurrencyInput';
-import { CreditCard, Upload, X } from 'lucide-react';
-import { getLocalDateString, toLocalDateString } from '../../lib/dateUtils';
+import { useAppDispatch, useAppSelector } from '@/store/hooks';
+import { createDespesa, updateDespesa, fetchDespesas } from '@/store/slices/despesaSlice';
+import { fetchCategoriasDespesa } from '@/store/slices/categoriaSlice';
+import { fetchBancos } from '@/store/slices/bancoSlice';
+import { fetchCartoes } from '@/store/slices/cartaoSlice';
+import { CurrencyInput } from '@/components/ui/currency-input';
+import { CreditCard, X, Tag } from 'lucide-react';
+import { renderCategoryIcon } from '@/lib/categoryIcons';
+import { getLocalDateString, toLocalDateString } from '@/lib/dateUtils';
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { NumberInput } from "@/components/ui/number-input";
+import { Label } from "@/components/ui/label";
+import { Textarea } from "@/components/ui/textarea";
+import { Checkbox } from "@/components/ui/checkbox";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
+import { toast } from 'sonner';
+import { cn, formatCurrency } from '@/lib/utils';
 
 interface DespesaModalProps {
   isOpen: boolean;
@@ -17,7 +33,7 @@ interface DespesaModalProps {
 
 const DespesaModal: React.FC<DespesaModalProps> = ({ isOpen, onClose, mode }) => {
   const dispatch = useAppDispatch();
-  const { currentDespesa, isLoading, error } = useAppSelector((state) => state.despesa);
+  const { currentDespesa, isLoading } = useAppSelector((state) => state.despesa);
   const { categoriasDespesa: categorias } = useAppSelector((state) => state.categoria);
   const { bancos } = useAppSelector((state) => state.banco);
   const { cartoes } = useAppSelector((state) => state.cartao);
@@ -55,17 +71,11 @@ const DespesaModal: React.FC<DespesaModalProps> = ({ isOpen, onClose, mode }) =>
 
   useEffect(() => {
     if (isOpen) {
-      console.log('DespesaModal - Buscando categorias de despesa...');
       dispatch(fetchCategoriasDespesa());
       dispatch(fetchBancos({}));
       dispatch(fetchCartoes({}));
     }
   }, [isOpen, dispatch]);
-
-  // Debug - log das categorias
-  useEffect(() => {
-    console.log('DespesaModal - Categorias disponíveis:', categorias);
-  }, [categorias]);
 
   useEffect(() => {
     if (mode === 'edit' && currentDespesa) {
@@ -80,7 +90,7 @@ const DespesaModal: React.FC<DespesaModalProps> = ({ isOpen, onClose, mode }) =>
         parcelado: currentDespesa.parcelado || false,
         numeroParcelas: currentDespesa.numeroParcelas || 1,
         recorrente: currentDespesa.recorrente || false,
-        tipoRecorrencia: (['mensal', 'anual'].includes(currentDespesa.tipoRecorrencia)) ? currentDespesa.tipoRecorrencia as 'mensal' | 'anual' : 'mensal',
+        tipoRecorrencia: (['mensal', 'anual'].includes(currentDespesa.tipoRecorrencia || '')) ? currentDespesa.tipoRecorrencia as 'mensal' | 'anual' : 'mensal',
         observacoes: currentDespesa.observacoes || '',
       });
     } else if (mode === 'create') {
@@ -101,9 +111,7 @@ const DespesaModal: React.FC<DespesaModalProps> = ({ isOpen, onClose, mode }) =>
       setComprovante(null);
     }
     setErrors({});
-  }, [mode, currentDespesa]);
-
-
+  }, [mode, currentDespesa, isOpen]);
 
   const validateForm = () => {
     const newErrors: Record<string, string> = {};
@@ -163,7 +171,6 @@ const DespesaModal: React.FC<DespesaModalProps> = ({ isOpen, onClose, mode }) =>
     try {
       let submitData: any;
 
-      // Se há comprovante, usar FormData
       if (comprovante) {
         submitData = new FormData();
         Object.entries(formData).forEach(([key, value]) => {
@@ -171,84 +178,82 @@ const DespesaModal: React.FC<DespesaModalProps> = ({ isOpen, onClose, mode }) =>
         });
         submitData.append('comprovante', comprovante);
       } else {
-        // Se não há comprovante, usar JSON
         submitData = { ...formData };
         
-        // Garantir que numeroParcelas seja um número
         submitData.numeroParcelas = typeof submitData.numeroParcelas === 'string' 
           ? parseInt(submitData.numeroParcelas) || 1 
           : submitData.numeroParcelas;
         
-        // Limpar campos vazios baseado na forma de pagamento
         if (formData.formaPagamento === 'credito') {
-          // Para crédito, remover bancoId se estiver vazio
-          if (!submitData.bancoId) {
-            delete submitData.bancoId;
-          }
+          if (!submitData.bancoId) delete submitData.bancoId;
         } else {
-          // Para outros tipos, remover cartaoId se estiver vazio
-          if (!submitData.cartaoId) {
-            delete submitData.cartaoId;
-          }
+          if (!submitData.cartaoId) delete submitData.cartaoId;
         }
       }
 
       if (mode === 'create') {
         await dispatch(createDespesa(submitData)).unwrap();
+        toast.success('Despesa criada com sucesso!');
       } else if (mode === 'edit' && currentDespesa) {
         await dispatch(updateDespesa({ 
           id: currentDespesa._id, 
           data: submitData 
         })).unwrap();
+        toast.success('Despesa atualizada com sucesso!');
       }
       
       dispatch(fetchDespesas({}));
       onClose();
     } catch (error: any) {
-      // Error is handled by Redux state
+      toast.error('Erro ao salvar despesa. Verifique os dados.');
+      console.error('Erro ao salvar despesa:', error);
     }
   };
 
-  const handleInputChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement | HTMLTextAreaElement>) => {
-    const { name, value, type } = e.target;
-    
-    let processedValue: any = value;
-    
-    if (type === 'checkbox') {
-      processedValue = (e.target as HTMLInputElement).checked;
-    } else if (name === 'numeroParcelas') {
-      // Permitir campo vazio durante a digitação
-      processedValue = value === '' ? '' : parseInt(value) || '';
-    }
-    
-    setFormData(prev => ({ ...prev, [name]: processedValue }));
-    
-    // Limpar campos relacionados quando mudar forma de pagamento
-    if (name === 'formaPagamento') {
-      if (value === 'credito') {
-        setFormData(prev => ({ ...prev, bancoId: '' }));
-      } else {
-        setFormData(prev => ({ ...prev, cartaoId: '', parcelado: false, numeroParcelas: 1 }));
-      }
-    }
-
-    // Limpar parcelas quando desmarcar parcelado
-    if (name === 'parcelado' && !processedValue) {
-      setFormData(prev => ({ ...prev, numeroParcelas: 1 }));
-    }
-
-    // Limpar recorrência quando marcar parcelado
-    if (name === 'parcelado' && processedValue) {
-      setFormData(prev => ({ ...prev, recorrente: false }));
-    }
-
-    // Limpar parcelado quando marcar recorrente
-    if (name === 'recorrente' && processedValue) {
-      setFormData(prev => ({ ...prev, parcelado: false, numeroParcelas: 1 }));
-    }
+  const handleInputChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
+    const { name, value } = e.target;
+    setFormData(prev => ({ ...prev, [name]: value }));
     
     if (errors[name]) {
       setErrors(prev => ({ ...prev, [name]: '' }));
+    }
+  };
+
+  const handleSelectChange = (name: string, value: string) => {
+    setFormData(prev => ({ ...prev, [name]: value }));
+
+    if (name === 'formaPagamento') {
+      if (value === 'credito') {
+        setFormData(prev => ({ ...prev, bancoId: '', formaPagamento: 'credito' }));
+      } else {
+        setFormData(prev => ({ 
+          ...prev, 
+          cartaoId: '', 
+          parcelado: false, 
+          numeroParcelas: 1,
+          formaPagamento: value as any 
+        }));
+      }
+    }
+
+    if (errors[name]) {
+      setErrors(prev => ({ ...prev, [name]: '' }));
+    }
+  };
+
+  const handleCheckboxChange = (name: string, checked: boolean) => {
+    setFormData(prev => ({ ...prev, [name]: checked }));
+
+    if (name === 'parcelado' && !checked) {
+      setFormData(prev => ({ ...prev, numeroParcelas: 1 }));
+    }
+
+    if (name === 'parcelado' && checked) {
+      setFormData(prev => ({ ...prev, recorrente: false }));
+    }
+
+    if (name === 'recorrente' && checked) {
+      setFormData(prev => ({ ...prev, parcelado: false, numeroParcelas: 1 }));
     }
   };
 
@@ -256,13 +261,6 @@ const DespesaModal: React.FC<DespesaModalProps> = ({ isOpen, onClose, mode }) =>
     setFormData(prev => ({ ...prev, valorTotal: value }));
     if (errors.valorTotal) {
       setErrors(prev => ({ ...prev, valorTotal: '' }));
-    }
-  };
-
-  const handleNumeroParcelasBlur = () => {
-    // Garantir que o valor seja válido quando o campo perde o foco
-    if (formData.numeroParcelas === '' || Number(formData.numeroParcelas) < 1) {
-      setFormData(prev => ({ ...prev, numeroParcelas: 1 }));
     }
   };
 
@@ -290,403 +288,354 @@ const DespesaModal: React.FC<DespesaModalProps> = ({ isOpen, onClose, mode }) =>
     }
   };
 
-  const formatCurrency = (value: number) => {
-    return new Intl.NumberFormat('pt-BR', {
-      style: 'currency',
-      currency: 'BRL',
-    }).format(value);
-  };
-
   const isReadOnly = mode === 'view';
   const isCredito = formData.formaPagamento === 'credito';
   const canParcelar = isCredito;
 
   return (
-    <Modal
-      isOpen={isOpen}
-      onClose={onClose}
-      title={getTitle()}
-      size="lg"
-    >
-      <form onSubmit={handleSubmit} className="space-y-4">
-        {/* Descrição */}
-        <div>
-          <label htmlFor="descricao" className="block text-sm font-medium text-gray-700">
-            Descrição *
-          </label>
-          <div className="mt-1 relative">
-            <input
-              type="text"
-              id="descricao"
-              name="descricao"
-              value={formData.descricao}
-              onChange={handleInputChange}
-              readOnly={isReadOnly}
-              className={`block w-full px-3 py-2 border rounded-md shadow-sm focus:outline-none focus:ring-red-500 focus:border-red-500 sm:text-sm ${
-                errors.descricao 
-                  ? 'border-red-300 text-red-900 placeholder-red-300' 
-                  : 'border-gray-300'
-              } ${isReadOnly ? 'bg-gray-50' : ''}`}
-              placeholder="Ex: Supermercado, Combustível, Conta de luz..."
-            />
-            <div className="absolute inset-y-0 right-0 pr-3 flex items-center pointer-events-none">
-              <CreditCard className="h-4 w-4 text-gray-400" />
-            </div>
-          </div>
-          {errors.descricao && (
-            <p className="mt-1 text-sm text-red-600">{errors.descricao}</p>
-          )}
-        </div>
-
-        {/* Valor e Data */}
-        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-          <div>
-            <label htmlFor="valorTotal" className="block text-sm font-medium text-gray-700">
-              Valor Total *
-            </label>
-            <div className="mt-1">
-              <CurrencyInput
-                id="valorTotal"
-                name="valorTotal"
-                value={formData.valorTotal}
-                onChange={handleValueChange}
-                readOnly={isReadOnly}
-                error={!!errors.valorTotal}
-                placeholder="0,00"
-              />
-            </div>
-            {errors.valorTotal && (
-              <p className="mt-1 text-sm text-red-600">{errors.valorTotal}</p>
-            )}
-          </div>
-
-          <div>
-            <label htmlFor="data" className="block text-sm font-medium text-gray-700">
-              Data *
-            </label>
-            <div className="mt-1">
-              <input
-                type="date"
-                id="data"
-                name="data"
-                value={formData.data}
+    <Dialog open={isOpen} onOpenChange={(open) => !open && onClose()}>
+      <DialogContent className="sm:max-w-[800px] max-h-[90vh] overflow-y-auto">
+        <DialogHeader>
+          <DialogTitle>{getTitle()}</DialogTitle>
+        </DialogHeader>
+        
+        <form onSubmit={handleSubmit} className="space-y-6 py-4">
+          {/* Descrição */}
+          <div className="space-y-2">
+            <Label htmlFor="descricao">Descrição *</Label>
+            <div className="relative">
+              <Input
+                id="descricao"
+                name="descricao"
+                value={formData.descricao}
                 onChange={handleInputChange}
                 readOnly={isReadOnly}
-                className={`block w-full px-3 py-2 border rounded-md shadow-sm focus:outline-none focus:ring-red-500 focus:border-red-500 sm:text-sm ${
-                  errors.data 
-                    ? 'border-red-300 text-red-900' 
-                    : 'border-gray-300'
-                } ${isReadOnly ? 'bg-gray-50' : ''}`}
+                className={cn(errors.descricao && "border-destructive focus-visible:ring-destructive", "pr-10")}
+                placeholder="Ex: Aluguel, Mercado, Luz..."
               />
+              <div className="absolute inset-y-0 right-0 pr-3 flex items-center pointer-events-none">
+                <Tag className="h-4 w-4 text-muted-foreground" />
+              </div>
             </div>
-            {errors.data && (
-              <p className="mt-1 text-sm text-red-600">{errors.data}</p>
-            )}
-          </div>
-        </div>
-
-        {/* Categoria e Forma de Pagamento */}
-        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-          <div>
-            <label htmlFor="categoriaId" className="block text-sm font-medium text-gray-700">
-              Categoria *
-            </label>
-            <div className="mt-1">
-              <select
-                id="categoriaId"
-                name="categoriaId"
-                value={formData.categoriaId}
-                onChange={handleInputChange}
-                disabled={isReadOnly}
-                className={`block w-full px-3 py-2 border rounded-md shadow-sm focus:outline-none focus:ring-red-500 focus:border-red-500 sm:text-sm ${
-                  errors.categoriaId 
-                    ? 'border-red-300 text-red-900' 
-                    : 'border-gray-300'
-                } ${isReadOnly ? 'bg-gray-50' : ''}`}
-              >
-                <option value="">Selecione uma categoria</option>
-                {categorias.map((categoria) => (
-                  <option key={categoria._id} value={categoria._id}>
-                    {categoria.nome}
-                  </option>
-                ))}
-              </select>
-            </div>
-            {errors.categoriaId && (
-              <p className="mt-1 text-sm text-red-600">{errors.categoriaId}</p>
+            {errors.descricao && (
+              <p className="text-xs font-medium text-destructive">{errors.descricao}</p>
             )}
           </div>
 
-          <div>
-            <label htmlFor="formaPagamento" className="block text-sm font-medium text-gray-700">
-              Forma de Pagamento *
-            </label>
-            <div className="mt-1">
-              <select
-                id="formaPagamento"
-                name="formaPagamento"
-                value={formData.formaPagamento}
-                onChange={handleInputChange}
-                disabled={isReadOnly}
-                className={`block w-full px-3 py-2 border rounded-md shadow-sm focus:outline-none focus:ring-red-500 focus:border-red-500 sm:text-sm ${
-                  isReadOnly ? 'bg-gray-50' : ''
-                } border-gray-300`}
-              >
-                <option value="debito">Débito</option>
-                <option value="credito">Crédito</option>
-                <option value="dinheiro">Dinheiro</option>
-              </select>
-            </div>
-          </div>
-        </div>
-
-        {/* Banco ou Cartão */}
-        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-          {!isCredito ? (
-            <div>
-              <label htmlFor="bancoId" className="block text-sm font-medium text-gray-700">
-                Banco *
-              </label>
-              <div className="mt-1">
-                <select
-                  id="bancoId"
-                  name="bancoId"
-                  value={formData.bancoId}
-                  onChange={handleInputChange}
-                  disabled={isReadOnly}
-                  className={`block w-full px-3 py-2 border rounded-md shadow-sm focus:outline-none focus:ring-red-500 focus:border-red-500 sm:text-sm ${
-                    errors.bancoId 
-                      ? 'border-red-300 text-red-900' 
-                      : 'border-gray-300'
-                  } ${isReadOnly ? 'bg-gray-50' : ''}`}
-                >
-                  <option value="">Selecione um banco</option>
-                  {bancos.filter(banco => banco.ativo).map((banco) => (
-                    <option key={banco._id} value={banco._id}>
-                      {banco.nome}
-                    </option>
-                  ))}
-                </select>
-              </div>
-              {errors.bancoId && (
-                <p className="mt-1 text-sm text-red-600">{errors.bancoId}</p>
-              )}
-            </div>
-          ) : (
-            <div>
-              <label htmlFor="cartaoId" className="block text-sm font-medium text-gray-700">
-                Cartão de Crédito *
-              </label>
-              <div className="mt-1">
-                <select
-                  id="cartaoId"
-                  name="cartaoId"
-                  value={formData.cartaoId}
-                  onChange={handleInputChange}
-                  disabled={isReadOnly}
-                  className={`block w-full px-3 py-2 border rounded-md shadow-sm focus:outline-none focus:ring-red-500 focus:border-red-500 sm:text-sm ${
-                    errors.cartaoId 
-                      ? 'border-red-300 text-red-900' 
-                      : 'border-gray-300'
-                  } ${isReadOnly ? 'bg-gray-50' : ''}`}
-                >
-                  <option value="">Selecione um cartão</option>
-                  {cartoes.filter(cartao => cartao.ativo).map((cartao) => (
-                    <option key={cartao._id} value={cartao._id}>
-                      {cartao.nome}
-                    </option>
-                  ))}
-                </select>
-              </div>
-              {errors.cartaoId && (
-                <p className="mt-1 text-sm text-red-600">{errors.cartaoId}</p>
-              )}
-            </div>
-          )}
-
-
-        </div>
-
-        {/* Parcelamento (apenas para crédito) */}
-        {canParcelar && (
-          <div className="border-t pt-4">
-            <div className="flex items-center mb-3">
-              <input
-                type="checkbox"
-                id="parcelado"
-                name="parcelado"
-                checked={formData.parcelado}
-                onChange={handleInputChange}
-                disabled={isReadOnly}
-                className="h-4 w-4 text-red-600 focus:ring-red-500 border-gray-300 rounded"
-              />
-              <label htmlFor="parcelado" className="ml-2 block text-sm font-medium text-gray-900">
-                Parcelar no cartão de crédito
-              </label>
-            </div>
-
-            {formData.parcelado && (
-              <div>
-                <label htmlFor="numeroParcelas" className="block text-sm font-medium text-gray-700">
-                  Número de Parcelas *
-                </label>
-                <div className="mt-1">
-                  <input
-                    type="number"
-                    id="numeroParcelas"
-                    name="numeroParcelas"
-                    value={formData.numeroParcelas}
-                    onChange={handleInputChange}
-                    onBlur={handleNumeroParcelasBlur}
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
+            <div className="space-y-4">
+              {/* Valor e Data */}
+              <div className="grid grid-cols-1 gap-4">
+                <div className="space-y-2">
+                  <Label htmlFor="valorTotal" className="text-sm font-medium">Valor Total *</Label>
+                  <CurrencyInput
+                    id="valorTotal"
+                    name="valorTotal"
+                    value={formData.valorTotal}
+                    onChange={handleValueChange}
                     readOnly={isReadOnly}
-                    min="2"
-                    max="60"
-                    className={`block w-full px-3 py-2 border rounded-md shadow-sm focus:outline-none focus:ring-red-500 focus:border-red-500 sm:text-sm ${
-                      errors.numeroParcelas 
-                        ? 'border-red-300 text-red-900' 
-                        : 'border-gray-300'
-                    } ${isReadOnly ? 'bg-gray-50' : ''}`}
+                    error={!!errors.valorTotal}
+                    placeholder="0,00"
                   />
+                  {errors.valorTotal && (
+                    <p className="text-xs font-medium text-destructive">{errors.valorTotal}</p>
+                  )}
                 </div>
-                {errors.numeroParcelas && (
-                  <p className="mt-1 text-sm text-red-600">{errors.numeroParcelas}</p>
-                )}
-                {(() => {
-                  const numParcelas = typeof formData.numeroParcelas === 'string' 
-                    ? parseInt(formData.numeroParcelas) 
-                    : formData.numeroParcelas;
-                  return numParcelas > 1 && formData.valorTotal > 0 && !isNaN(numParcelas) && (
-                    <p className="mt-1 text-sm text-gray-600">
-                      {numParcelas}x de {formatCurrency(formData.valorTotal / numParcelas)}
-                    </p>
-                  );
-                })()}
+
+                <div className="space-y-2">
+                  <Label htmlFor="data" className="text-sm font-medium">Data *</Label>
+                  <Input
+                    type="date"
+                    id="data"
+                    name="data"
+                    value={formData.data}
+                    onChange={handleInputChange}
+                    readOnly={isReadOnly}
+                    className={cn(errors.data && "border-destructive focus-visible:ring-destructive")}
+                  />
+                  {errors.data && (
+                    <p className="text-xs font-medium text-destructive">{errors.data}</p>
+                  )}
+                </div>
               </div>
-            )}
-          </div>
-        )}
 
-        {/* Recorrência */}
-        <div className="border-t pt-4">
-          <div className="flex items-center mb-3">
-            <input
-              type="checkbox"
-              id="recorrente"
-              name="recorrente"
-              checked={formData.recorrente}
-              onChange={handleInputChange}
-              disabled={isReadOnly}
-              className="h-4 w-4 text-red-600 focus:ring-red-500 border-gray-300 rounded"
-            />
-            <label htmlFor="recorrente" className="ml-2 block text-sm font-medium text-gray-900">
-              Despesa recorrente
-            </label>
-          </div>
-
-          {formData.recorrente && (
-            <div>
-              <label htmlFor="tipoRecorrencia" className="block text-sm font-medium text-gray-700">
-                Tipo de Recorrência *
-              </label>
-              <div className="mt-1">
-                <select
-                  id="tipoRecorrencia"
-                  name="tipoRecorrencia"
-                  value={formData.tipoRecorrencia}
-                  onChange={handleInputChange}
+              {/* Forma de Pagamento */}
+              <div className="space-y-2">
+                <Label htmlFor="formaPagamento" className="text-sm font-medium">Forma de Pagamento *</Label>
+                <Select
+                  value={formData.formaPagamento}
+                  onValueChange={(value) => handleSelectChange('formaPagamento', value)}
                   disabled={isReadOnly}
-                  className={`block w-full px-3 py-2 border rounded-md shadow-sm focus:outline-none focus:ring-red-500 focus:border-red-500 sm:text-sm ${
-                    isReadOnly ? 'bg-gray-50' : ''
-                  } border-gray-300`}
                 >
-                  <option value="mensal">Mensal</option>
-                  <option value="anual">Anual</option>
-                </select>
+                  <SelectTrigger className={cn(errors.formaPagamento && "border-destructive focus-visible:ring-destructive")}>
+                    <SelectValue placeholder="Selecione a forma" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="debito">Débito</SelectItem>
+                    <SelectItem value="credito">Crédito</SelectItem>
+                    <SelectItem value="dinheiro">Dinheiro / Pix</SelectItem>
+                  </SelectContent>
+                </Select>
+                {errors.formaPagamento && (
+                  <p className="text-xs font-medium text-destructive">{errors.formaPagamento}</p>
+                )}
+              </div>
+
+              {/* Banco ou Cartão */}
+              {isCredito ? (
+                <div className="space-y-2">
+                  <Label htmlFor="cartaoId" className="text-sm font-medium">Cartão de Crédito *</Label>
+                  <Select
+                    value={formData.cartaoId}
+                    onValueChange={(value) => handleSelectChange('cartaoId', value)}
+                    disabled={isReadOnly}
+                  >
+                    <SelectTrigger className={cn(errors.cartaoId && "border-destructive focus-visible:ring-destructive")}>
+                      <SelectValue placeholder="Selecione o cartão" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {cartoes.filter(cartao => cartao.ativo).map((cartao) => (
+                        <SelectItem key={cartao._id} value={cartao._id}>
+                          <div className="flex items-center">
+                            <CreditCard className="h-4 w-4 mr-2 text-muted-foreground" />
+                            {cartao.nome}
+                          </div>
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                  {errors.cartaoId && (
+                    <p className="text-xs font-medium text-destructive">{errors.cartaoId}</p>
+                  )}
+                </div>
+              ) : (
+                <div className="space-y-2">
+                  <Label htmlFor="bancoId" className="text-sm font-medium">Banco *</Label>
+                  <Select
+                    value={formData.bancoId}
+                    onValueChange={(value) => handleSelectChange('bancoId', value)}
+                    disabled={isReadOnly}
+                  >
+                    <SelectTrigger className={cn(errors.bancoId && "border-destructive focus-visible:ring-destructive")}>
+                      <SelectValue placeholder="Selecione o banco" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {bancos.filter(banco => banco.ativo).map((banco) => (
+                        <SelectItem key={banco._id} value={banco._id}>
+                          {banco.nome}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                  {errors.bancoId && (
+                    <p className="text-xs font-medium text-destructive">{errors.bancoId}</p>
+                  )}
+                </div>
+              )}
+
+              {/* Categoria */}
+              <div className="space-y-2">
+                <Label htmlFor="categoriaId" className="text-sm font-medium">Categoria *</Label>
+                <Select
+                  value={formData.categoriaId}
+                  onValueChange={(value) => handleSelectChange('categoriaId', value)}
+                  disabled={isReadOnly}
+                >
+                  <SelectTrigger className={cn(errors.categoriaId && "border-destructive focus-visible:ring-destructive")}>
+                    <SelectValue placeholder="Selecione a categoria">
+                      {formData.categoriaId && categorias.find(c => c._id === formData.categoriaId) && (
+                        <div className="flex items-center gap-2">
+                          <div 
+                            className="w-5 h-5 rounded-full flex items-center justify-center text-white flex-shrink-0"
+                            style={{ backgroundColor: categorias.find(c => c._id === formData.categoriaId)?.cor || '#ef4444' }}
+                          >
+                            {renderCategoryIcon(categorias.find(c => c._id === formData.categoriaId)?.icone || 'tag', "h-3 w-3")}
+                          </div>
+                          <span>{categorias.find(c => c._id === formData.categoriaId)?.nome}</span>
+                        </div>
+                      )}
+                    </SelectValue>
+                  </SelectTrigger>
+                  <SelectContent>
+                    {categorias.filter(cat => cat.ativa).map((categoria) => (
+                      <SelectItem key={categoria._id} value={categoria._id}>
+                        <div className="flex items-center gap-2">
+                          <div 
+                            className="w-5 h-5 rounded-full flex items-center justify-center text-white flex-shrink-0"
+                            style={{ backgroundColor: categoria.cor || '#ef4444' }}
+                          >
+                            {renderCategoryIcon(categoria.icone || 'tag', "h-3 w-3")}
+                          </div>
+                          <span>{categoria.nome}</span>
+                        </div>
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+                {errors.categoriaId && (
+                  <p className="text-xs font-medium text-destructive">{errors.categoriaId}</p>
+                )}
               </div>
             </div>
-          )}
-        </div>
 
-        {/* Upload de Comprovante */}
-        {!isReadOnly && (
-          <div>
-            <label htmlFor="comprovante" className="block text-sm font-medium text-gray-700">
-              Comprovante
-            </label>
-            <div className="mt-1">
-              <div className="flex items-center space-x-2">
-                <input
+            <div className="space-y-6">
+              {/* Opções Avançadas */}
+              <div className="space-y-4 p-4 rounded-lg border border-border/50 bg-muted/30">
+                <h3 className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">Opções Adicionais</h3>
+                
+                {/* Parcelado */}
+                {canParcelar && (
+                  <div className="space-y-3">
+                    <div className="flex items-center space-x-2">
+                      <Checkbox 
+                        id="parcelado" 
+                        checked={formData.parcelado}
+                        onCheckedChange={(checked) => handleCheckboxChange('parcelado', checked as boolean)}
+                        disabled={isReadOnly}
+                      />
+                      <Label htmlFor="parcelado" className="text-sm font-medium cursor-pointer">Despesa Parcelada</Label>
+                    </div>
+                    
+                    {formData.parcelado && (
+                      <div className="pl-6 space-y-2 animate-in fade-in slide-in-from-left-2 duration-200">
+                        <Label htmlFor="numeroParcelas" className="text-xs font-medium">Número de Parcelas</Label>
+                        <NumberInput
+                          id="numeroParcelas"
+                          name="numeroParcelas"
+                          value={formData.numeroParcelas}
+                          onValueChange={(val) => {
+                            setFormData(prev => ({ ...prev, numeroParcelas: val || '' }));
+                            if (errors.numeroParcelas) {
+                              setErrors(prev => ({ ...prev, numeroParcelas: '' }));
+                            }
+                          }}
+                          min={2}
+                          max={60}
+                          readOnly={isReadOnly}
+                          className={cn(errors.numeroParcelas && "border-destructive focus-visible:ring-destructive")}
+                        />
+                        {formData.valorTotal > 0 && (
+                          <p className="text-[10px] text-muted-foreground italic">
+                            {formData.numeroParcelas}x de {formatCurrency(formData.valorTotal / (Number(formData.numeroParcelas) || 1))}
+                          </p>
+                        )}
+                        {errors.numeroParcelas && (
+                          <p className="text-xs font-medium text-destructive">{errors.numeroParcelas}</p>
+                        )}
+                      </div>
+                    )}
+                  </div>
+                )}
+
+                {/* Recorrente */}
+                <div className="space-y-3">
+                  <div className="flex items-center space-x-2">
+                    <Checkbox 
+                      id="recorrente" 
+                      checked={formData.recorrente}
+                      onCheckedChange={(checked) => handleCheckboxChange('recorrente', checked as boolean)}
+                      disabled={isReadOnly || formData.parcelado}
+                    />
+                    <Label htmlFor="recorrente" className={cn("text-sm font-medium cursor-pointer", (isReadOnly || formData.parcelado) && "opacity-50")}>
+                      Despesa Recorrente
+                    </Label>
+                  </div>
+                  
+                  {formData.recorrente && (
+                    <div className="pl-6 space-y-2 animate-in fade-in slide-in-from-left-2 duration-200">
+                      <Label htmlFor="tipoRecorrencia" className="text-xs font-medium">Tipo de Recorrência</Label>
+                      <Select
+                        value={formData.tipoRecorrencia}
+                        onValueChange={(value: any) => handleSelectChange('tipoRecorrencia', value)}
+                        disabled={isReadOnly}
+                      >
+                        <SelectTrigger className="h-8">
+                          <SelectValue placeholder="Selecione" />
+                        </SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="mensal">Mensal</SelectItem>
+                          <SelectItem value="anual">Anual</SelectItem>
+                        </SelectContent>
+                      </Select>
+                    </div>
+                  )}
+                </div>
+              </div>
+
+              {/* Observações */}
+              <div className="space-y-2">
+                <Label htmlFor="observacoes" className="text-sm font-medium">Observações</Label>
+                <Textarea
+                  id="observacoes"
+                  name="observacoes"
+                  value={formData.observacoes}
+                  onChange={handleInputChange}
+                  readOnly={isReadOnly}
+                  placeholder="Informações adicionais..."
+                  className="resize-none min-h-[100px]"
+                />
+              </div>
+            </div>
+          </div>
+
+          {/* Comprovante */}
+          <div className="space-y-2 border-t pt-4">
+            <Label htmlFor="comprovante" className="text-sm font-medium">Comprovante</Label>
+            {isReadOnly ? (
+              currentDespesa?.comprovante ? (
+                <Button
+                  type="button"
+                  variant="outline"
+                  className="w-full flex items-center justify-center gap-2"
+                  onClick={() => window.open(currentDespesa.comprovante, '_blank')}
+                >
+                  Visualizar Comprovante
+                </Button>
+              ) : (
+                <p className="text-sm text-muted-foreground italic">Nenhum comprovante anexado.</p>
+              )
+            ) : (
+              <div className="flex flex-col gap-3">
+                <Input
                   type="file"
                   id="comprovante"
-                  name="comprovante"
                   onChange={handleFileChange}
-                  accept=".jpg,.jpeg,.png,.pdf"
-                  className="block w-full text-sm text-gray-500 file:mr-4 file:py-2 file:px-4 file:rounded-md file:border-0 file:text-sm file:font-medium file:bg-red-50 file:text-red-700 hover:file:bg-red-100"
+                  accept="image/*,application/pdf"
+                  className="cursor-pointer"
                 />
                 {comprovante && (
-                  <button
-                    type="button"
-                    onClick={removeFile}
-                    className="p-1 text-red-500 hover:text-red-700"
-                  >
-                    <X className="h-4 w-4" />
-                  </button>
+                  <div className="flex items-center justify-between p-2 bg-destructive/5 rounded-md border border-destructive/10">
+                    <span className="text-xs font-medium text-destructive truncate max-w-[300px]">
+                      {comprovante.name}
+                    </span>
+                    <Button
+                      type="button"
+                      variant="ghost"
+                      size="sm"
+                      onClick={removeFile}
+                      className="h-6 w-6 p-0 text-destructive hover:bg-destructive/10"
+                    >
+                      <X className="h-3 w-3" />
+                    </Button>
+                  </div>
                 )}
               </div>
-              {comprovante && (
-                <p className="mt-1 text-sm text-gray-600">
-                  Arquivo selecionado: {comprovante.name}
-                </p>
-              )}
-              <p className="mt-1 text-xs text-gray-500">
-                Formatos aceitos: JPG, PNG, PDF (máx. 5MB)
-              </p>
-            </div>
+            )}
           </div>
-        )}
 
-        {/* Observações */}
-        <div>
-          <label htmlFor="observacoes" className="block text-sm font-medium text-gray-700">
-            Observações
-          </label>
-          <div className="mt-1">
-            <textarea
-              id="observacoes"
-              name="observacoes"
-              value={formData.observacoes}
-              onChange={handleInputChange}
-              readOnly={isReadOnly}
-              rows={3}
-              className={`block w-full px-3 py-2 border rounded-md shadow-sm focus:outline-none focus:ring-red-500 focus:border-red-500 sm:text-sm ${
-                isReadOnly ? 'bg-gray-50' : ''
-              } border-gray-300`}
-              placeholder="Informações adicionais sobre a despesa..."
-            />
-          </div>
-        </div>
-
-        {/* Botões */}
-        {!isReadOnly && (
-          <div className="flex justify-end space-x-3 pt-4">
-            <button
-              type="button"
-              onClick={onClose}
-              className="px-4 py-2 border border-gray-300 rounded-md shadow-sm text-sm font-medium text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-red-500"
-            >
-              Cancelar
-            </button>
-            <button
-              type="submit"
-              disabled={isLoading}
-              className="px-4 py-2 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-red-600 hover:bg-red-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-red-500 disabled:opacity-50 disabled:cursor-not-allowed"
-            >
-              {isLoading ? 'Salvando...' : mode === 'create' ? 'Criar Despesa' : 'Salvar Alterações'}
-            </button>
-          </div>
-        )}
-      </form>
-    </Modal>
+          <DialogFooter className="pt-4 border-t">
+            <Button type="button" variant="outline" onClick={onClose} disabled={isLoading}>
+              {isReadOnly ? 'Fechar' : 'Cancelar'}
+            </Button>
+            {!isReadOnly && (
+              <Button type="submit" disabled={isLoading} className="bg-destructive hover:bg-destructive/90 text-white">
+                {isLoading ? 'Salvando...' : mode === 'create' ? 'Criar Despesa' : 'Salvar Alterações'}
+              </Button>
+            )}
+          </DialogFooter>
+        </form>
+      </DialogContent>
+    </Dialog>
   );
 };
 

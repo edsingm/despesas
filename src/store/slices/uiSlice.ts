@@ -13,9 +13,11 @@ interface UiState {
   };
 }
 
+const isClient = typeof window !== 'undefined';
+
 const initialState: UiState = {
   sidebarOpen: true,
-  theme: (localStorage.getItem('theme') as 'light' | 'dark') || 'light',
+  theme: isClient ? (localStorage.getItem('theme') as 'light' | 'dark') || 'light' : 'light',
   toasts: [],
   modals: {},
   loading: {},

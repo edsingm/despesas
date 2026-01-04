@@ -5,6 +5,7 @@ export interface User {
   id?: string;
   name: string;
   email: string;
+  avatar?: string;
   createdAt: string;
   updatedAt: string;
 }
@@ -68,6 +69,7 @@ export interface Receita {
   data: string;
   recorrente: boolean;
   tipoRecorrencia?: 'diaria' | 'semanal' | 'mensal' | 'anual';
+  pago?: boolean;
   observacoes?: string;
   comprovante?: string;
   createdAt: string;
@@ -89,6 +91,7 @@ export interface Despesa {
   data: string;
   recorrente: boolean;
   tipoRecorrencia?: 'diaria' | 'semanal' | 'mensal' | 'anual';
+  pago?: boolean;
   observacoes?: string;
   comprovante?: string;
   createdAt: string;
@@ -172,19 +175,32 @@ export interface PaginatedResponse<T> {
   success: boolean;
   message?: string;
   data: {
-    // Coleções específicas retornadas pela API (ex.: despesas, receitas, bancos, cartoes, categorias)
     [key: string]: any;
-    // Metadados de paginação sempre presentes
     pagination: {
       page: number;
       limit: number;
       total: number;
       pages: number;
     };
+    totalFiltrado?: number;
   };
 }
 
 // Tipos para estatísticas
+export interface CategoriaEstatistica {
+  _id: string;
+  nome: string;
+  cor: string;
+  total: number;
+  quantidade: number;
+}
+
+export interface EvolucaoMensal {
+  _id: { ano: number; mes: number };
+  total: number;
+  quantidade: number;
+}
+
 export interface EstatisticasReceita {
   resumo: {
     totalReceitas: number;
@@ -193,13 +209,7 @@ export interface EstatisticasReceita {
     maiorReceita: number;
     menorReceita: number;
   };
-  receitasPorCategoria: Array<{
-    _id: string;
-    nome: string;
-    cor: string;
-    total: number;
-    quantidade: number;
-  }>;
+  receitasPorCategoria: CategoriaEstatistica[];
   receitasPorBanco: Array<{
     _id: string;
     nome: string;
@@ -207,11 +217,7 @@ export interface EstatisticasReceita {
     total: number;
     quantidade: number;
   }>;
-  evolucaoMensal: Array<{
-    _id: { ano: number; mes: number };
-    total: number;
-    quantidade: number;
-  }>;
+  evolucaoMensal: EvolucaoMensal[];
 }
 
 export interface EstatisticasDespesa {
@@ -222,23 +228,43 @@ export interface EstatisticasDespesa {
     maiorDespesa: number;
     menorDespesa: number;
   };
-  despesasPorCategoria: Array<{
-    _id: string;
-    nome: string;
-    cor: string;
-    total: number;
-    quantidade: number;
-  }>;
+  despesasPorCategoria: CategoriaEstatistica[];
   despesasPorFormaPagamento: Array<{
     _id: string;
     total: number;
     quantidade: number;
   }>;
-  evolucaoMensal: Array<{
-    _id: { ano: number; mes: number };
+  evolucaoMensal: EvolucaoMensal[];
+}
+
+export interface ResumoGeral {
+  receitas: {
     total: number;
-    quantidade: number;
-  }>;
+    pendente: number;
+    pago: number;
+  };
+  despesas: {
+    total: number;
+    pendente: number;
+    pago: number;
+  };
+  saldo: number;
+  percentualDespesa: number;
+}
+
+export interface GraficoPizzaData {
+  _id: string;
+  nome: string;
+  cor: string;
+  total: number;
+  quantidade: number;
+}
+
+export interface GraficoLinhaData {
+  _id: { ano: number; mes: number };
+  receitas: number;
+  despesas: number;
+  saldo: number;
 }
 
 // Tipos para filtros
@@ -255,6 +281,7 @@ export interface FiltroPaginacao {
 }
 
 export interface FiltroReceita extends FiltroData, FiltroPaginacao {
+  busca?: string;
   categoriaId?: string;
   bancoId?: string;
   recorrente?: boolean;
@@ -263,6 +290,7 @@ export interface FiltroReceita extends FiltroData, FiltroPaginacao {
 }
 
 export interface FiltroDespesa extends FiltroData, FiltroPaginacao {
+  busca?: string;
   categoriaId?: string;
   bancoId?: string;
   cartaoId?: string;

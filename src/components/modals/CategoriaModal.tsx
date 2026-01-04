@@ -1,9 +1,28 @@
 import { useState, useEffect } from 'react';
-import { useAppDispatch, useAppSelector } from '../../store/hooks';
-import { createCategoria, updateCategoria, fetchCategorias } from '../../store/slices/categoriaSlice';
-import Modal from '../Modal';
+import { useAppDispatch, useAppSelector } from '@/store/hooks';
+import { createCategoria, updateCategoria, fetchCategorias } from '@/store/slices/categoriaSlice';
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogFooter,
+} from "@/components/ui/dialog";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { Button } from "@/components/ui/button";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
+import { Checkbox } from "@/components/ui/checkbox";
 import { Palette, Tag } from 'lucide-react';
-import { renderCategoryIcon, availableIcons, getIconLabel } from '../../lib/categoryIcons';
+import { renderCategoryIcon, availableIcons, getIconLabel } from '@/lib/categoryIcons';
+import { toast } from "sonner";
+import { cn } from "@/lib/utils";
 
 interface CategoriaModalProps {
   isOpen: boolean;
@@ -96,34 +115,40 @@ const CategoriaModal: React.FC<CategoriaModalProps> = ({ isOpen, onClose, mode }
     try {
       if (mode === 'create') {
         await dispatch(createCategoria(formData)).unwrap();
+        toast.success("Categoria criada com sucesso!");
       } else if (mode === 'edit' && currentCategoria) {
         await dispatch(updateCategoria({ 
           id: currentCategoria._id, 
           data: formData 
         })).unwrap();
+        toast.success("Categoria atualizada com sucesso!");
       }
       
       dispatch(fetchCategorias({}));
       onClose();
     } catch (error) {
       console.error('Erro ao salvar categoria:', error);
+      toast.error("Erro ao salvar categoria");
     }
   };
 
-  const handleInputChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => {
-    const { name, value, type } = e.target;
-    
-    let processedValue: any = value;
-    
-    if (type === 'checkbox') {
-      processedValue = (e.target as HTMLInputElement).checked;
-    }
-    
-    setFormData(prev => ({ ...prev, [name]: processedValue }));
-    
+  const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const { name, value } = e.target;
+    setFormData(prev => ({ ...prev, [name]: value }));
     if (errors[name]) {
       setErrors(prev => ({ ...prev, [name]: '' }));
     }
+  };
+
+  const handleSelectChange = (name: string, value: string) => {
+    setFormData(prev => ({ ...prev, [name]: value }));
+    if (errors[name]) {
+      setErrors(prev => ({ ...prev, [name]: '' }));
+    }
+  };
+  
+  const handleCheckboxChange = (checked: boolean) => {
+    setFormData(prev => ({ ...prev, ativa: checked }));
   };
 
   const handleCorChange = (cor: string) => {
@@ -152,218 +177,207 @@ const CategoriaModal: React.FC<CategoriaModalProps> = ({ isOpen, onClose, mode }
   const isReadOnly = mode === 'view';
 
   return (
-    <Modal
-      isOpen={isOpen}
-      onClose={onClose}
-      title={getTitle()}
-      size="md"
-    >
-      <form onSubmit={handleSubmit} className="space-y-4">
-        {/* Nome */}
-        <div>
-          <label htmlFor="nome" className="block text-sm font-medium text-gray-700">
-            Nome *
-          </label>
-          <div className="mt-1 relative">
-            <input
-              type="text"
-              id="nome"
-              name="nome"
-              value={formData.nome}
-              onChange={handleInputChange}
-              readOnly={isReadOnly}
-              className={`block w-full px-3 py-2 border rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500 sm:text-sm ${
-                errors.nome 
-                  ? 'border-red-300 text-red-900 placeholder-red-300' 
-                  : 'border-gray-300'
-              } ${isReadOnly ? 'bg-gray-50' : ''}`}
-              placeholder="Ex: Alimentação, Transporte, Salário..."
-            />
-            <div className="absolute inset-y-0 right-0 pr-3 flex items-center pointer-events-none">
-              <Tag className="h-4 w-4 text-gray-400" />
-            </div>
-          </div>
-          {errors.nome && (
-            <p className="mt-1 text-sm text-red-600">{errors.nome}</p>
-          )}
-        </div>
+    <Dialog open={isOpen} onOpenChange={(open) => !open && onClose()}>
+      <DialogContent className="sm:max-w-[600px] max-h-[90vh] overflow-y-auto">
+        <DialogHeader>
+          <DialogTitle>{getTitle()}</DialogTitle>
+        </DialogHeader>
 
-        {/* Tipo */}
-        <div>
-          <label htmlFor="tipo" className="block text-sm font-medium text-gray-700">
-            Tipo *
-          </label>
-          <div className="mt-1">
-            <select
-              id="tipo"
-              name="tipo"
-              value={formData.tipo}
-              onChange={handleInputChange}
-              disabled={isReadOnly}
-              className={`block w-full px-3 py-2 border rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500 sm:text-sm ${
-                errors.tipo 
-                  ? 'border-red-300 text-red-900' 
-                  : 'border-gray-300'
-              } ${isReadOnly ? 'bg-gray-50' : ''}`}
-            >
-              <option value="receita">Receita</option>
-              <option value="despesa">Despesa</option>
-            </select>
-          </div>
-          {errors.tipo && (
-            <p className="mt-1 text-sm text-red-600">{errors.tipo}</p>
-          )}
-        </div>
-
-        {/* Cor */}
-        <div>
-          <label className="block text-sm font-medium text-gray-700">
-            Cor *
-          </label>
-          <div className="mt-2">
-            <div className="flex items-center space-x-2 mb-3">
-              <Palette className="h-4 w-4 text-gray-400" />
-              <span className="text-sm text-gray-600">Selecione uma cor:</span>
-            </div>
-            <div className="grid grid-cols-6 gap-2">
-              {coresPredefinidas.map((cor) => (
-                <button
-                  key={cor}
-                  type="button"
-                  onClick={() => !isReadOnly && handleCorChange(cor)}
-                  disabled={isReadOnly}
-                  className={`w-8 h-8 rounded-full border-2 transition-all ${
-                    formData.cor === cor 
-                      ? 'border-gray-800 scale-110' 
-                      : 'border-gray-300 hover:border-gray-500'
-                  } ${isReadOnly ? 'cursor-not-allowed' : 'cursor-pointer'}`}
-                  style={{ backgroundColor: cor }}
-                  title={cor}
-                />
-              ))}
-            </div>
-            {!isReadOnly && (
-              <div className="mt-2">
-                <input
-                  type="color"
-                  value={formData.cor}
-                  onChange={(e) => handleCorChange(e.target.value)}
-                  className="w-full h-8 border border-gray-300 rounded cursor-pointer"
-                  title="Escolher cor personalizada"
-                />
-              </div>
-            )}
-            <div className="mt-2 flex items-center space-x-2">
-              <div 
-                className="w-4 h-4 rounded border border-gray-300"
-                style={{ backgroundColor: formData.cor }}
+        <form onSubmit={handleSubmit} className="space-y-6 py-4">
+          {/* Nome */}
+          <div className="space-y-2">
+            <Label htmlFor="nome">Nome *</Label>
+            <div className="relative">
+              <Input
+                id="nome"
+                name="nome"
+                value={formData.nome}
+                onChange={handleInputChange}
+                disabled={isReadOnly}
+                className={cn(errors.nome && "border-destructive", "pr-10")}
+                placeholder="Ex: Alimentação, Transporte, Salário..."
               />
-              <span className="text-sm text-gray-600">{formData.cor}</span>
-            </div>
-          </div>
-          {errors.cor && (
-            <p className="mt-1 text-sm text-red-600">{errors.cor}</p>
-          )}
-        </div>
-
-        {/* Ícone */}
-        <div>
-          <label className="block text-sm font-medium text-gray-700">
-            Ícone *
-          </label>
-          <div className="mt-2">
-            <div className="grid grid-cols-6 gap-2">
-              {availableIcons.map((icone) => (
-                <button
-                  key={icone.nome}
-                  type="button"
-                  onClick={() => !isReadOnly && handleIconeChange(icone.nome)}
-                  disabled={isReadOnly}
-                  className={`p-2 border rounded-md transition-all flex items-center justify-center ${
-                    formData.icone === icone.nome 
-                      ? 'border-blue-500 bg-blue-50 text-blue-600' 
-                      : 'border-gray-300 hover:border-gray-400 text-gray-600'
-                  } ${isReadOnly ? 'cursor-not-allowed' : 'cursor-pointer'}`}
-                  title={icone.label}
-                >
-                  {renderCategoryIcon(icone.nome, 'w-5 h-5')}
-                </button>
-              ))}
-            </div>
-            <div className="mt-2 flex items-center space-x-2">
-              <span className="text-sm text-gray-600">Ícone selecionado:</span>
-              <div className="flex items-center space-x-1">
-                {renderCategoryIcon(formData.icone, 'w-4 h-4')}
-                <span className="text-sm font-medium">{getIconLabel(formData.icone)}</span>
+              <div className="absolute inset-y-0 right-0 pr-3 flex items-center pointer-events-none">
+                <Tag className="h-4 w-4 text-muted-foreground" />
               </div>
             </div>
+            {errors.nome && (
+              <p className="text-sm text-destructive">{errors.nome}</p>
+            )}
           </div>
-          {errors.icone && (
-            <p className="mt-1 text-sm text-red-600">{errors.icone}</p>
-          )}
-        </div>
 
-        {/* Status Ativo */}
-        <div className="flex items-center">
-          <input
-            type="checkbox"
-            id="ativa"
-            name="ativa"
-            checked={formData.ativa}
-            onChange={handleInputChange}
-            disabled={isReadOnly}
-            className="h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300 rounded"
-          />
-          <label htmlFor="ativa" className="ml-2 block text-sm text-gray-900">
-            Categoria ativa
-          </label>
-        </div>
-
-        {/* Preview da Categoria */}
-        <div className="border-t pt-4">
-          <label className="block text-sm font-medium text-gray-700 mb-2">
-            Pré-visualização
-          </label>
-          <div className="flex items-center space-x-3 p-3 border rounded-md bg-gray-50">
-            <div 
-              className="w-10 h-10 rounded-full flex items-center justify-center text-white"
-              style={{ backgroundColor: formData.cor }}
+          {/* Tipo */}
+          <div className="space-y-2">
+            <Label htmlFor="tipo">Tipo *</Label>
+            <Select
+              value={formData.tipo}
+              onValueChange={(value) => handleSelectChange('tipo', value)}
+              disabled={isReadOnly}
             >
-              {renderCategoryIcon(formData.icone, 'w-5 h-5')}
-            </div>
-            <div>
-              <div className="font-medium text-gray-900">
-                {formData.nome || 'Nome da categoria'}
+              <SelectTrigger className={cn(errors.tipo && "border-destructive")}>
+                <SelectValue placeholder="Selecione o tipo" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="receita">Receita</SelectItem>
+                <SelectItem value="despesa">Despesa</SelectItem>
+              </SelectContent>
+            </Select>
+            {errors.tipo && (
+              <p className="text-sm text-destructive">{errors.tipo}</p>
+            )}
+          </div>
+
+          {/* Cor */}
+          <div className="space-y-2">
+            <Label>Cor *</Label>
+            <div className="p-4 border border-border/60 rounded-lg space-y-4 bg-muted/10">
+              <div className="flex items-center space-x-2">
+                <Palette className="h-4 w-4 text-muted-foreground" />
+                <span className="text-sm text-muted-foreground">Selecione uma cor:</span>
               </div>
-              <div className="text-sm text-gray-500">
-                {formData.tipo === 'receita' ? 'Receita' : 'Despesa'}
-                {!formData.ativa && ' (Inativa)'}
+              
+              <div className="grid grid-cols-6 sm:grid-cols-12 gap-2">
+                {coresPredefinidas.map((cor) => (
+                  <button
+                    key={cor}
+                    type="button"
+                    onClick={() => !isReadOnly && handleCorChange(cor)}
+                    disabled={isReadOnly}
+                    className={cn(
+                      "w-6 h-6 rounded-full border-2 transition-all hover:scale-110 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-ring",
+                      formData.cor === cor ? "border-foreground scale-110" : "border-transparent",
+                      isReadOnly && "cursor-not-allowed opacity-50"
+                    )}
+                    style={{ backgroundColor: cor }}
+                    title={cor}
+                  />
+                ))}
+              </div>
+
+              {!isReadOnly && (
+                <div className="flex items-center gap-2">
+                  <Input
+                    type="color"
+                    value={formData.cor}
+                    onChange={(e) => handleCorChange(e.target.value)}
+                    className="w-12 h-8 p-1 cursor-pointer"
+                    title="Escolher cor personalizada"
+                  />
+                  <span className="text-xs text-muted-foreground">Cor personalizada</span>
+                </div>
+              )}
+            </div>
+            {errors.cor && (
+              <p className="text-sm text-destructive">{errors.cor}</p>
+            )}
+          </div>
+
+          {/* Ícone */}
+          <div className="space-y-2">
+            <Label>Ícone *</Label>
+            <div className="p-4 border border-border/60 rounded-lg space-y-4 bg-muted/10">
+              <div className="grid grid-cols-6 sm:grid-cols-8 gap-2 max-h-[200px] overflow-y-auto pr-2">
+                {availableIcons.map((icone) => (
+                  <button
+                    key={icone.nome}
+                    type="button"
+                    onClick={() => !isReadOnly && handleIconeChange(icone.nome)}
+                    disabled={isReadOnly}
+                    className={cn(
+                      "p-2 border rounded-md transition-all flex items-center justify-center hover:bg-muted",
+                      formData.icone === icone.nome 
+                        ? "border-primary bg-primary/10 text-primary ring-2 ring-primary ring-offset-2" 
+                        : "border-input text-muted-foreground",
+                      isReadOnly && "cursor-not-allowed opacity-50"
+                    )}
+                    title={icone.label}
+                  >
+                    {renderCategoryIcon(icone.nome, 'w-5 h-5')}
+                  </button>
+                ))}
+              </div>
+              
+              <div className="flex items-center gap-2 p-2 bg-background border rounded-md">
+                <span className="text-sm text-muted-foreground">Ícone selecionado:</span>
+                <div className="flex items-center gap-2 font-medium">
+                  {renderCategoryIcon(formData.icone, 'w-4 h-4')}
+                  <span className="text-sm">{getIconLabel(formData.icone)}</span>
+                </div>
+              </div>
+            </div>
+            {errors.icone && (
+              <p className="text-sm text-destructive">{errors.icone}</p>
+            )}
+          </div>
+
+          {/* Status Ativo */}
+          <div className="flex items-center space-x-2 bg-muted/20 p-3 rounded-lg border border-border/50">
+            <Checkbox
+              id="ativa"
+              checked={formData.ativa}
+              onCheckedChange={handleCheckboxChange}
+              disabled={isReadOnly}
+            />
+            <div className="grid gap-1.5 leading-none">
+              <Label htmlFor="ativa" className="text-sm font-medium cursor-pointer">
+                Categoria ativa
+              </Label>
+              <p className="text-xs text-muted-foreground">
+                Categorias inativas não podem ser usadas em novas transações.
+              </p>
+            </div>
+          </div>
+
+          {/* Preview da Categoria */}
+          <div className="pt-4 border-t border-border/50">
+            <Label className="mb-3 block text-xs font-semibold uppercase tracking-wider text-muted-foreground">Pré-visualização</Label>
+            <div className="flex items-center space-x-4 p-4 border rounded-xl bg-muted/30 shadow-sm">
+              <div 
+                className="w-12 h-12 rounded-full flex items-center justify-center text-white shadow-md transition-all"
+                style={{ backgroundColor: formData.cor }}
+              >
+                {renderCategoryIcon(formData.icone, 'w-6 h-6')}
+              </div>
+              <div className="flex-1 min-w-0">
+                <div className="font-semibold text-foreground truncate">
+                  {formData.nome || 'Nome da categoria'}
+                </div>
+                <div className="text-sm text-muted-foreground flex items-center gap-2">
+                  <span className={cn(
+                    "px-2 py-0.5 rounded-full text-[10px] font-bold uppercase tracking-tighter",
+                    formData.tipo === 'receita' ? "bg-success/10 text-success" : "bg-destructive/10 text-destructive"
+                  )}>
+                    {formData.tipo === 'receita' ? 'Receita' : 'Despesa'}
+                  </span>
+                  {!formData.ativa && (
+                    <span className="px-2 py-0.5 rounded-full text-[10px] bg-muted text-muted-foreground font-bold uppercase tracking-tighter border">Inativa</span>
+                  )}
+                </div>
               </div>
             </div>
           </div>
-        </div>
 
-        {/* Botões */}
-        {!isReadOnly && (
-          <div className="flex justify-end space-x-3 pt-4">
-            <button
+          {/* Footer */}
+          <DialogFooter className="pt-4 border-t">
+            <Button
               type="button"
+              variant="outline"
               onClick={onClose}
-              className="px-4 py-2 border border-gray-300 rounded-md shadow-sm text-sm font-medium text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500"
             >
-              Cancelar
-            </button>
-            <button
-              type="submit"
-              disabled={isLoading}
-              className="px-4 py-2 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 disabled:opacity-50 disabled:cursor-not-allowed"
-            >
-              {isLoading ? 'Salvando...' : mode === 'create' ? 'Criar Categoria' : 'Salvar Alterações'}
-            </button>
-          </div>
-        )}
-      </form>
-    </Modal>
+              {isReadOnly ? 'Fechar' : 'Cancelar'}
+            </Button>
+            {!isReadOnly && (
+              <Button
+                type="submit"
+                disabled={isLoading}
+              >
+                {isLoading ? 'Salvando...' : mode === 'create' ? 'Criar Categoria' : 'Salvar Alterações'}
+              </Button>
+            )}
+          </DialogFooter>
+        </form>
+      </DialogContent>
+    </Dialog>
   );
 };
 
