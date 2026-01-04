@@ -14,6 +14,7 @@
     "build:client": "next build",
     "build:server": "tsc -p tsconfig.server.json",
     "build": "pnpm run build:client && pnpm run build:server",
+    "postbuild": "cp -r .next/static .next/standalone/.next/static && cp -r public .next/standalone/public",
     "start": "node dist/server/api/server.js",
     "dev": "concurrently \"npm run server:dev\" \"npm run client:dev\""
   },
