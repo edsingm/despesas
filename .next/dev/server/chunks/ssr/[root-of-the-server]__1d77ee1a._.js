@@ -121,21 +121,16 @@ class ApiService {
         });
         // Interceptor para adicionar token de autenticação
         this.api.interceptors.request.use((config)=>{
-            const token = localStorage.getItem('token');
-            if (token) {
-                config.headers.Authorization = `Bearer ${token}`;
-            }
+            if ("TURBOPACK compile-time falsy", 0) //TURBOPACK unreachable
+            ;
             return config;
         }, (error)=>{
             return Promise.reject(error);
         });
         // Interceptor para tratar respostas
         this.api.interceptors.response.use((response)=>response, (error)=>{
-            if (error.response?.status === 401) {
-                // Token inválido ou expirado
-                localStorage.removeItem('token');
-                window.location.href = '/login';
-            }
+            if (error.response?.status === 401 && ("TURBOPACK compile-time value", "undefined") !== 'undefined') //TURBOPACK unreachable
+            ;
             return Promise.reject(error);
         });
     }
@@ -177,230 +172,230 @@ const authApi = {
 };
 const categoriaApi = {
     getCategorias: async (params)=>{
-        const response = await apiService['api'].get('/categorias', {
+        const response = await apiService.api.get('/categorias', {
             params
         });
-        return apiService['handlePaginatedResponse'](response);
+        return apiService.handlePaginatedResponse(response);
     },
     getCategoriaById: async (id)=>{
-        const response = await apiService['api'].get(`/categorias/${id}`);
-        return apiService['handleResponse'](response);
+        const response = await apiService.api.get(`/categorias/${id}`);
+        return apiService.handleResponse(response);
     },
     createCategoria: async (categoriaData)=>{
-        const response = await apiService['api'].post('/categorias', categoriaData);
-        return apiService['handleResponse'](response);
+        const response = await apiService.api.post('/categorias', categoriaData);
+        return apiService.handleResponse(response);
     },
     updateCategoria: async (id, categoriaData)=>{
-        const response = await apiService['api'].put(`/categorias/${id}`, categoriaData);
-        return apiService['handleResponse'](response);
+        const response = await apiService.api.put(`/categorias/${id}`, categoriaData);
+        return apiService.handleResponse(response);
     },
     deleteCategoria: async (id)=>{
-        const response = await apiService['api'].delete(`/categorias/${id}`);
-        return apiService['handleResponse'](response);
+        const response = await apiService.api.delete(`/categorias/${id}`);
+        return apiService.handleResponse(response);
     },
     getEstatisticasCategorias: async ()=>{
-        const response = await apiService['api'].get('/categorias/estatisticas');
-        return apiService['handleResponse'](response);
+        const response = await apiService.api.get('/categorias/estatisticas');
+        return apiService.handleResponse(response);
     }
 };
 const bancoApi = {
     getBancos: async (params)=>{
-        const response = await apiService['api'].get('/bancos', {
+        const response = await apiService.api.get('/bancos', {
             params
         });
-        return apiService['handlePaginatedResponse'](response);
+        return apiService.handlePaginatedResponse(response);
     },
     getBancoById: async (id)=>{
-        const response = await apiService['api'].get(`/bancos/${id}`);
-        return apiService['handleResponse'](response);
+        const response = await apiService.api.get(`/bancos/${id}`);
+        return apiService.handleResponse(response);
     },
     getSaldoConsolidado: async ()=>{
-        const response = await apiService['api'].get('/bancos/saldo-consolidado');
-        return apiService['handleResponse'](response);
+        const response = await apiService.api.get('/bancos/saldo-consolidado');
+        return apiService.handleResponse(response);
     },
     getExtratoBanco: async (id, params)=>{
-        const response = await apiService['api'].get(`/bancos/${id}/extrato`, {
+        const response = await apiService.api.get(`/bancos/${id}/extrato`, {
             params
         });
-        return apiService['handlePaginatedResponse'](response);
+        return apiService.handlePaginatedResponse(response);
     },
     createBanco: async (bancoData)=>{
-        const response = await apiService['api'].post('/bancos', bancoData);
-        return apiService['handleResponse'](response);
+        const response = await apiService.api.post('/bancos', bancoData);
+        return apiService.handleResponse(response);
     },
     updateBanco: async (id, bancoData)=>{
-        const response = await apiService['api'].put(`/bancos/${id}`, bancoData);
-        return apiService['handleResponse'](response);
+        const response = await apiService.api.put(`/bancos/${id}`, bancoData);
+        return apiService.handleResponse(response);
     },
     deleteBanco: async (id)=>{
-        const response = await apiService['api'].delete(`/bancos/${id}`);
-        return apiService['handleResponse'](response);
+        const response = await apiService.api.delete(`/bancos/${id}`);
+        return apiService.handleResponse(response);
     }
 };
 const cartaoApi = {
     getCartoes: async (params)=>{
-        const response = await apiService['api'].get('/cartoes', {
+        const response = await apiService.api.get('/cartoes', {
             params
         });
-        return apiService['handlePaginatedResponse'](response);
+        return apiService.handlePaginatedResponse(response);
     },
     getCartaoById: async (id)=>{
-        const response = await apiService['api'].get(`/cartoes/${id}`);
-        return apiService['handleResponse'](response);
+        const response = await apiService.api.get(`/cartoes/${id}`);
+        return apiService.handleResponse(response);
     },
     getLimiteConsolidado: async ()=>{
-        const response = await apiService['api'].get('/cartoes/limite-consolidado');
-        return apiService['handleResponse'](response);
+        const response = await apiService.api.get('/cartoes/limite-consolidado');
+        return apiService.handleResponse(response);
     },
     getProximosVencimentos: async ()=>{
-        const response = await apiService['api'].get('/cartoes/proximos-vencimentos');
-        return apiService['handleResponse'](response);
+        const response = await apiService.api.get('/cartoes/proximos-vencimentos');
+        return apiService.handleResponse(response);
     },
     getFaturaCartao: async (id, mes, ano)=>{
-        const response = await apiService['api'].get(`/cartoes/${id}/fatura/${mes}/${ano}`);
-        return apiService['handleResponse'](response);
+        const response = await apiService.api.get(`/cartoes/${id}/fatura/${mes}/${ano}`);
+        return apiService.handleResponse(response);
     },
     createCartao: async (cartaoData)=>{
-        const response = await apiService['api'].post('/cartoes', cartaoData);
-        return apiService['handleResponse'](response);
+        const response = await apiService.api.post('/cartoes', cartaoData);
+        return apiService.handleResponse(response);
     },
     updateCartao: async (id, cartaoData)=>{
-        const response = await apiService['api'].put(`/cartoes/${id}`, cartaoData);
-        return apiService['handleResponse'](response);
+        const response = await apiService.api.put(`/cartoes/${id}`, cartaoData);
+        return apiService.handleResponse(response);
     },
     deleteCartao: async (id)=>{
-        const response = await apiService['api'].delete(`/cartoes/${id}`);
-        return apiService['handleResponse'](response);
+        const response = await apiService.api.delete(`/cartoes/${id}`);
+        return apiService.handleResponse(response);
     }
 };
 const receitaApi = {
     getReceitas: async (params)=>{
-        const response = await apiService['api'].get('/receitas', {
+        const response = await apiService.api.get('/receitas', {
             params
         });
-        return apiService['handlePaginatedResponse'](response);
+        return apiService.handlePaginatedResponse(response);
     },
     getReceitaById: async (id)=>{
-        const response = await apiService['api'].get(`/receitas/${id}`);
-        return apiService['handleResponse'](response);
+        const response = await apiService.api.get(`/receitas/${id}`);
+        return apiService.handleResponse(response);
     },
     getEstatisticasReceitas: async (params)=>{
-        const response = await apiService['api'].get('/receitas/estatisticas', {
+        const response = await apiService.api.get('/receitas/estatisticas', {
             params
         });
-        return apiService['handleResponse'](response);
+        return apiService.handleResponse(response);
     },
     getProximasRecorrentes: async ()=>{
-        const response = await apiService['api'].get('/receitas/proximas-recorrentes');
-        return apiService['handleResponse'](response);
+        const response = await apiService.api.get('/receitas/proximas-recorrentes');
+        return apiService.handleResponse(response);
     },
     createReceita: async (receitaData)=>{
-        const response = await apiService['api'].post('/receitas', receitaData, {
+        const response = await apiService.api.post('/receitas', receitaData, {
             headers: {
                 'Content-Type': 'multipart/form-data'
             }
         });
-        return apiService['handleResponse'](response);
+        return apiService.handleResponse(response);
     },
     createReceitaJSON: async (receitaData)=>{
-        const response = await apiService['api'].post('/receitas', receitaData);
-        return apiService['handleResponse'](response);
+        const response = await apiService.api.post('/receitas', receitaData);
+        return apiService.handleResponse(response);
     },
     updateReceita: async (id, receitaData)=>{
-        const response = await apiService['api'].put(`/receitas/${id}`, receitaData, {
+        const response = await apiService.api.put(`/receitas/${id}`, receitaData, {
             headers: {
                 'Content-Type': 'multipart/form-data'
             }
         });
-        return apiService['handleResponse'](response);
+        return apiService.handleResponse(response);
     },
     updateReceitaJSON: async (id, receitaData)=>{
-        const response = await apiService['api'].put(`/receitas/${id}`, receitaData);
-        return apiService['handleResponse'](response);
+        const response = await apiService.api.put(`/receitas/${id}`, receitaData);
+        return apiService.handleResponse(response);
     },
     deleteReceita: async (id)=>{
-        const response = await apiService['api'].delete(`/receitas/${id}`);
-        return apiService['handleResponse'](response);
+        const response = await apiService.api.delete(`/receitas/${id}`);
+        return apiService.handleResponse(response);
     }
 };
 const despesaApi = {
     getDespesas: async (params)=>{
-        const response = await apiService['api'].get('/despesas', {
+        const response = await apiService.api.get('/despesas', {
             params
         });
-        return apiService['handlePaginatedResponse'](response);
+        return apiService.handlePaginatedResponse(response);
     },
     getDespesaById: async (id)=>{
-        const response = await apiService['api'].get(`/despesas/${id}`);
-        return apiService['handleResponse'](response);
+        const response = await apiService.api.get(`/despesas/${id}`);
+        return apiService.handleResponse(response);
     },
     getEstatisticasDespesas: async (params)=>{
-        const response = await apiService['api'].get('/despesas/estatisticas', {
+        const response = await apiService.api.get('/despesas/estatisticas', {
             params
         });
-        return apiService['handleResponse'](response);
+        return apiService.handleResponse(response);
     },
     getProximasParcelasVencimento: async ()=>{
-        const response = await apiService['api'].get('/despesas/proximas-parcelas-vencimento');
-        return apiService['handleResponse'](response);
+        const response = await apiService.api.get('/despesas/proximas-parcelas-vencimento');
+        return apiService.handleResponse(response);
     },
     createDespesa: async (despesaData)=>{
-        const response = await apiService['api'].post('/despesas', despesaData, {
+        const response = await apiService.api.post('/despesas', despesaData, {
             headers: {
                 'Content-Type': 'multipart/form-data'
             }
         });
-        return apiService['handleResponse'](response);
+        return apiService.handleResponse(response);
     },
     createDespesaJSON: async (despesaData)=>{
-        const response = await apiService['api'].post('/despesas', despesaData);
-        return apiService['handleResponse'](response);
+        const response = await apiService.api.post('/despesas', despesaData);
+        return apiService.handleResponse(response);
     },
     updateDespesa: async (id, despesaData)=>{
-        const response = await apiService['api'].put(`/despesas/${id}`, despesaData, {
+        const response = await apiService.api.put(`/despesas/${id}`, despesaData, {
             headers: {
                 'Content-Type': 'multipart/form-data'
             }
         });
-        return apiService['handleResponse'](response);
+        return apiService.handleResponse(response);
     },
     updateDespesaJSON: async (id, despesaData)=>{
-        const response = await apiService['api'].put(`/despesas/${id}`, despesaData);
-        return apiService['handleResponse'](response);
+        const response = await apiService.api.put(`/despesas/${id}`, despesaData);
+        return apiService.handleResponse(response);
     },
     updateStatusParcela: async (id, numeroParcela, statusData)=>{
-        const response = await apiService['api'].put(`/despesas/${id}/parcelas/${numeroParcela}`, statusData);
-        return apiService['handleResponse'](response);
+        const response = await apiService.api.put(`/despesas/${id}/parcelas/${numeroParcela}`, statusData);
+        return apiService.handleResponse(response);
     },
     deleteDespesa: async (id)=>{
-        const response = await apiService['api'].delete(`/despesas/${id}`);
-        return apiService['handleResponse'](response);
+        const response = await apiService.api.delete(`/despesas/${id}`);
+        return apiService.handleResponse(response);
     }
 };
 const dashboardApi = {
     getResumoGeral: async (params)=>{
-        const response = await apiService['api'].get('/dashboard/resumo', {
+        const response = await apiService.api.get('/dashboard/resumo', {
             params
         });
-        return apiService['handleResponse'](response);
+        return apiService.handleResponse(response);
     },
     getGraficoReceitasDespesas: async (params)=>{
-        const response = await apiService['api'].get('/dashboard/grafico-receitas-despesas', {
+        const response = await apiService.api.get('/dashboard/grafico-receitas-despesas', {
             params
         });
-        return apiService['handleResponse'](response);
+        return apiService.handleResponse(response);
     },
     getGraficoDespesasPorCategoria: async (params)=>{
-        const response = await apiService['api'].get('/dashboard/grafico-despesas-categoria', {
+        const response = await apiService.api.get('/dashboard/grafico-despesas-categoria', {
             params
         });
-        return apiService['handleResponse'](response);
+        return apiService.handleResponse(response);
     },
     getEvolucaoPatrimonial: async (params)=>{
-        const response = await apiService['api'].get('/dashboard/evolucao-patrimonial', {
+        const response = await apiService.api.get('/dashboard/evolucao-patrimonial', {
             params
         });
-        return apiService['handleResponse'](response);
+        return apiService.handleResponse(response);
     }
 };
 const __TURBOPACK__default__export__ = apiService;
@@ -434,10 +429,11 @@ var __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f2e$pnpm$2f40$
 var __TURBOPACK__imported__module__$5b$project$5d2f$src$2f$services$2f$api$2e$ts__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__ = __turbopack_context__.i("[project]/src/services/api.ts [app-ssr] (ecmascript)");
 ;
 ;
+const isClient = ("TURBOPACK compile-time value", "undefined") !== 'undefined';
 const initialState = {
     user: null,
-    token: localStorage.getItem('token'),
-    isAuthenticated: !!localStorage.getItem('token'),
+    token: ("TURBOPACK compile-time falsy", 0) ? "TURBOPACK unreachable" : null,
+    isAuthenticated: ("TURBOPACK compile-time falsy", 0) ? "TURBOPACK unreachable" : false,
     isLoading: false,
     error: null
 };
@@ -2091,7 +2087,12 @@ const fetchGraficoReceitasDespesas = (0, __TURBOPACK__imported__module__$5b$proj
     try {
         const response = await __TURBOPACK__imported__module__$5b$project$5d2f$src$2f$services$2f$api$2e$ts__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__["dashboardApi"].getGraficoReceitasDespesas(params);
         if (response.success && response.data) {
-            return response.data;
+            const data = response.data;
+            return {
+                labels: data.map((item)=>`${item._id.mes}/${item._id.ano}`),
+                receitas: data.map((item)=>item.receitas),
+                despesas: data.map((item)=>item.despesas)
+            };
         }
         return rejectWithValue(response.message || 'Erro ao buscar gráfico de receitas vs despesas');
     } catch (error) {
@@ -2102,7 +2103,12 @@ const fetchGraficoDespesasPorCategoria = (0, __TURBOPACK__imported__module__$5b$
     try {
         const response = await __TURBOPACK__imported__module__$5b$project$5d2f$src$2f$services$2f$api$2e$ts__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__["dashboardApi"].getGraficoDespesasPorCategoria(params);
         if (response.success && response.data) {
-            return response.data;
+            const data = response.data;
+            return {
+                labels: data.map((item)=>item.nome),
+                valores: data.map((item)=>item.total),
+                cores: data.map((item)=>item.cor)
+            };
         }
         return rejectWithValue(response.message || 'Erro ao buscar gráfico de despesas por categoria');
     } catch (error) {
@@ -2253,9 +2259,10 @@ __turbopack_context__.s([
 ]);
 var __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f2e$pnpm$2f40$reduxjs$2b$toolkit$40$2$2e$9$2e$0_react$2d$redux$40$9$2e$2$2e$0_$40$types$2b$react$40$18$2e$3$2e$26_react$40$18$2e$3$2e$1_redux$40$5$2e$0$2e$1_$5f$react$40$18$2e$3$2e$1$2f$node_modules$2f40$reduxjs$2f$toolkit$2f$dist$2f$redux$2d$toolkit$2e$modern$2e$mjs__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__$3c$locals$3e$__ = __turbopack_context__.i("[project]/node_modules/.pnpm/@reduxjs+toolkit@2.9.0_react-redux@9.2.0_@types+react@18.3.26_react@18.3.1_redux@5.0.1__react@18.3.1/node_modules/@reduxjs/toolkit/dist/redux-toolkit.modern.mjs [app-ssr] (ecmascript) <locals>");
 ;
+const isClient = ("TURBOPACK compile-time value", "undefined") !== 'undefined';
 const initialState = {
     sidebarOpen: true,
-    theme: localStorage.getItem('theme') || 'light',
+    theme: ("TURBOPACK compile-time falsy", 0) ? "TURBOPACK unreachable" : 'light',
     toasts: [],
     modals: {},
     loading: {}
