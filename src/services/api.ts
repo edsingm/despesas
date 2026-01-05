@@ -28,10 +28,13 @@ import {
 } from '../types';
 
 // Configuração base do axios
-// Em produção, usa caminho relativo (/api) pois o backend serve o frontend
-// Em desenvolvimento, usa URL absoluta para o servidor local
-const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || 
-  (process.env.NODE_ENV === 'production' ? '/api' : 'http://localhost:3001/api');
+// Em produção/Docker:
+// - No cliente: usa '/api' (o browser resolve para o domínio atual, e o Next.js faz o proxy)
+// - No servidor: usa o endereço interno do backend para evitar problemas de rede no container
+const isServer = typeof window === 'undefined';
+const API_BASE_URL = isServer
+  ? (process.env.BACKEND_URL || 'http://localhost:3001') + '/api'
+  : (process.env.NEXT_PUBLIC_API_URL || '/api');
 
 class ApiService {
   public api: AxiosInstance;
