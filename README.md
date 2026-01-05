@@ -12,7 +12,7 @@ Um sistema completo para gerenciamento de finanças pessoais desenvolvido com Re
 - **Gestão de bancos e cartões**
 - **Categorização** de transações
 - **Relatórios e filtros**
-- **Alertas de vencimento**
+- **Alertas de vencimento***
 
 ## 🛠️ Tecnologias
 
