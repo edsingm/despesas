@@ -2,7 +2,7 @@ import { createClient } from '@/lib/supabase/client'
 import { LoginForm, RegisterForm } from '@/types'
 import { Database } from '@/types/supabase'
 
-const supabase = createClient()
+const supabase = createClient() as any
 
 type UserInsert = Database['public']['Tables']['users']['Insert']
 

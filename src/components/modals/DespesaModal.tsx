@@ -488,7 +488,7 @@ const DespesaModal: React.FC<DespesaModalProps> = ({
                           name="numeroParcelas"
                           value={formData.numeroParcelas}
                           onValueChange={(val) => {
-                            setFormData(prev => ({ ...prev, numeroParcelas: val }));
+                            setFormData(prev => ({ ...prev, numeroParcelas: val === undefined ? '' : val }));
                           }}
                           readOnly={isReadOnly}
                           min={2}
