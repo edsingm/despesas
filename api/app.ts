@@ -108,72 +108,15 @@ app.use((error: Error, req: Request, res: Response, next: NextFunction) => {
   })
 })
 
-// Serving do Frontend React em Prod
-// Em produção: __dirname = /workspace/dist/server/api, então ../.. = /workspace/dist
-// Este deve ser o ÚLTIMO handler para catch-all de rotas não encontradas
-if (process.env.NODE_ENV === 'production') {
-  const frontendPath = path.join(__dirname, '../..');
-  const indexPath = path.join(__dirname, '../../index.html');
-  
-  console.log(`📁 Frontend path: ${frontendPath}`);
-  console.log(`📄 Index.html path: ${indexPath}`);
-  console.log(`📂 __dirname: ${__dirname}`);
-  
-  // Serve static files with proper configuration
-  app.use(express.static(frontendPath, { 
-    maxAge: '1d',
-    etag: true,
-    lastModified: true,
-    setHeaders: (res, filePath) => {
-      // Set correct MIME types for JS modules
-      if (filePath.endsWith('.js')) {
-        res.setHeader('Content-Type', 'application/javascript; charset=utf-8');
-      } else if (filePath.endsWith('.mjs')) {
-        res.setHeader('Content-Type', 'application/javascript; charset=utf-8');
-      } else if (filePath.endsWith('.css')) {
-        res.setHeader('Content-Type', 'text/css; charset=utf-8');
-      }
-      console.log(`📦 Serving static file: ${filePath}`);
-    }
-  }));
-  
-  // SPA catch-all - serve index.html for all non-api, non-file routes
-  app.get('*', (req: Request, res: Response) => {
-    // Skip API routes
-    if (req.path.startsWith('/api')) {
-      return res.status(404).json({ 
-        success: false, 
-        error: 'API endpoint not found' 
-      });
-    }
-    
-    // For file requests that weren't found by static middleware
-    if (req.path.includes('.') && !req.path.endsWith('.html')) {
-      console.log(`❌ Static file not found: ${req.path}`);
-      return res.status(404).send('File not found');
-    }
-    
-    // Serve index.html for SPA routes
-    console.log(`📍 SPA catch-all serving index.html for: ${req.path}`);
-    res.sendFile(indexPath, (err) => {
-      if (err) {
-        console.error('❌ Error serving index.html:', err);
-        res.status(500).json({ 
-          success: false, 
-          error: 'Failed to load application',
-          details: process.env.NODE_ENV === 'development' ? err.message : undefined
-        });
-      }
-    });
-  });
-} else {
-  // Em desenvolvimento, retornar 404 para rotas não encontradas
-  app.use((req: Request, res: Response) => {
-    res.status(404).json({
-      success: false,
-      error: 'Route not found',
-    })
+// Handler para rotas não encontradas (404)
+// Em produção ou desenvolvimento, a API deve apenas retornar 404 JSON
+// O Frontend agora é servido separadamente via Next.js
+app.use((req: Request, res: Response) => {
+  res.status(404).json({
+    success: false,
+    error: 'API Endpoint not found',
+    path: req.path
   })
-}
+})
 
 export default app
