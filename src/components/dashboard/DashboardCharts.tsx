@@ -149,25 +149,7 @@ export function DashboardCharts({
         <ChartCard title="Fluxo de Caixa" icon={BarChart3}>
           {graficoReceitasDespesas ? (
             <Bar
-              data={{
-                labels: graficoReceitasDespesas.labels,
-                datasets: [
-                  {
-                    label: 'Receitas',
-                    data: graficoReceitasDespesas.receitas,
-                    backgroundColor: getChartColor('--success', 0.8),
-                    borderRadius: 4,
-                    barThickness: 10,
-                  },
-                  {
-                    label: 'Despesas',
-                    data: graficoReceitasDespesas.despesas,
-                    backgroundColor: getChartColor('--destructive', 0.8),
-                    borderRadius: 4,
-                    barThickness: 10,
-                  },
-                ],
-              }}
+              data={graficoReceitasDespesas}
               options={{
                 responsive: true,
                 maintainAspectRatio: false,
@@ -198,27 +180,23 @@ export function DashboardCharts({
         <ChartCard title="Evolução Patrimonial" icon={TrendingUp}>
           {evolucaoPatrimonial ? (
             <Line
-              data={{
-                labels: evolucaoPatrimonial.labels,
-                datasets: [
-                  {
-                    label: 'Patrimônio',
-                    data: evolucaoPatrimonial.valores,
-                    borderColor: getChartColor('--primary'),
-                    backgroundColor: 'transparent',
-                    tension: 0.3,
-                    pointRadius: 2,
-                    pointHoverRadius: 5,
-                    borderWidth: 2,
-                  },
-                ],
-              }}
+              data={evolucaoPatrimonial}
               options={{
                 responsive: true,
                 maintainAspectRatio: false,
                 interaction: { intersect: false, mode: 'index' },
                 plugins: {
-                  legend: { display: false },
+                  legend: { 
+                    display: true,
+                    position: 'bottom',
+                    align: 'end',
+                    labels: {
+                      usePointStyle: true,
+                      padding: 15,
+                      font: { size: 11 },
+                      color: getChartColor('--muted-foreground')
+                    }
+                  },
                   tooltip: commonTooltipOptions
                 },
                 scales: commonScalesOptions
@@ -237,30 +215,7 @@ export function DashboardCharts({
         <ChartCard title="Despesas por Categoria" icon={TrendingDown}>
           {graficoDespesasPorCategoria ? (
             <Doughnut
-              data={{
-                labels: graficoDespesasPorCategoria.labels,
-                datasets: [{
-                  data: graficoDespesasPorCategoria.valores,
-                  backgroundColor: [
-                    getChartColor('--chart-1', 0.85),
-                    getChartColor('--chart-2', 0.85),
-                    getChartColor('--chart-3', 0.85),
-                    getChartColor('--chart-4', 0.85),
-                    getChartColor('--chart-5', 0.85),
-                    getChartColor('--chart-6', 0.85),
-                  ],
-                  hoverBackgroundColor: [
-                    getChartColor('--chart-1', 1),
-                    getChartColor('--chart-2', 1),
-                    getChartColor('--chart-3', 1),
-                    getChartColor('--chart-4', 1),
-                    getChartColor('--chart-5', 1),
-                    getChartColor('--chart-6', 1),
-                  ],
-                  borderWidth: 2,
-                  borderColor: getChartColor('--card'),
-                }],
-              }}
+              data={graficoDespesasPorCategoria}
               options={{
                 responsive: true,
                 maintainAspectRatio: false,
@@ -290,30 +245,7 @@ export function DashboardCharts({
         <ChartCard title="Receitas por Categoria" icon={PieChart}>
           {graficoReceitasPorCategoria ? (
             <Doughnut
-              data={{
-                labels: graficoReceitasPorCategoria.labels,
-                datasets: [{
-                  data: graficoReceitasPorCategoria.valores,
-                  backgroundColor: [
-                    getChartColor('--chart-1', 0.85),
-                    getChartColor('--chart-2', 0.85),
-                    getChartColor('--chart-3', 0.85),
-                    getChartColor('--chart-4', 0.85),
-                    getChartColor('--chart-5', 0.85),
-                    getChartColor('--chart-6', 0.85),
-                  ],
-                  hoverBackgroundColor: [
-                    getChartColor('--chart-1', 1),
-                    getChartColor('--chart-2', 1),
-                    getChartColor('--chart-3', 1),
-                    getChartColor('--chart-4', 1),
-                    getChartColor('--chart-5', 1),
-                    getChartColor('--chart-6', 1),
-                  ],
-                  borderWidth: 2,
-                  borderColor: getChartColor('--card'),
-                }],
-              }}
+              data={graficoReceitasPorCategoria}
               options={{
                 responsive: true,
                 maintainAspectRatio: false,

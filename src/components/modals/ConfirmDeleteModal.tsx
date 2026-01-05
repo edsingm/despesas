@@ -33,14 +33,14 @@ const ConfirmDeleteModal: React.FC<ConfirmDeleteModalProps> = ({
   warningMessage
 }) => {
   const getTypeLabel = () => {
-    const labels = {
+    const labels: Record<string, string> = {
       receita: 'receita',
       despesa: 'despesa',
       categoria: 'categoria',
       banco: 'banco',
       cartão: 'cartão'
     };
-    return labels[itemType];
+    return labels[itemType] || itemType || 'item';
   };
 
   return (

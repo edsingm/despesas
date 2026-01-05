@@ -1,8 +1,4 @@
 import { useState, useEffect } from 'react';
-import { useAppDispatch, useAppSelector } from '@/store/hooks';
-import { createReceita, updateReceita, fetchReceitas } from '@/store/slices/receitaSlice';
-import { fetchCategoriasReceita } from '@/store/slices/categoriaSlice';
-import { fetchBancos } from '@/store/slices/bancoSlice';
 import { CurrencyInput } from '@/components/ui/currency-input';
 import { X, Tag } from 'lucide-react';
 import { renderCategoryIcon } from '@/lib/categoryIcons';
@@ -21,21 +17,31 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { toast } from 'sonner';
-import { cn, formatCurrency } from '@/lib/utils';
+import { cn } from '@/lib/utils';
+import { Receita, ReceitaForm, Categoria, Banco } from '@/types';
 
 interface ReceitaModalProps {
   isOpen: boolean;
   onClose: () => void;
   mode: 'create' | 'edit' | 'view';
+  initialData?: Receita | null;
+  onSave?: (data: ReceitaForm) => Promise<void>;
+  isLoading?: boolean;
+  categorias: Categoria[];
+  bancos: Banco[];
 }
 
-const ReceitaModal: React.FC<ReceitaModalProps> = ({ isOpen, onClose, mode }) => {
-  const dispatch = useAppDispatch();
-  const { currentReceita, isLoading } = useAppSelector((state) => state.receita);
-  const { categoriasReceita: categorias } = useAppSelector((state) => state.categoria);
-  const { bancos } = useAppSelector((state) => state.banco);
-  
-  const [formData, setFormData] = useState({
+const ReceitaModal: React.FC<ReceitaModalProps> = ({ 
+  isOpen, 
+  onClose, 
+  mode,
+  initialData,
+  onSave,
+  isLoading = false,
+  categorias,
+  bancos
+}) => {
+  const [formData, setFormData] = useState<ReceitaForm>({
     descricao: '',
     valor: 0,
     data: getLocalDateString(),
@@ -49,22 +55,15 @@ const ReceitaModal: React.FC<ReceitaModalProps> = ({ isOpen, onClose, mode }) =>
   const [errors, setErrors] = useState<Record<string, string>>({});
 
   useEffect(() => {
-    if (isOpen) {
-      dispatch(fetchCategoriasReceita());
-      dispatch(fetchBancos({}));
-    }
-  }, [isOpen, dispatch]);
-
-  useEffect(() => {
-    if (mode === 'edit' && currentReceita) {
+    if (mode === 'edit' && initialData) {
       setFormData({
-        descricao: currentReceita.descricao || '',
-        valor: currentReceita.valor || 0,
-        data: currentReceita.data ? toLocalDateString(currentReceita.data) : getLocalDateString(),
-        categoriaId: typeof currentReceita.categoriaId === 'string' ? currentReceita.categoriaId : currentReceita.categoriaId?._id || '',
-        bancoId: typeof currentReceita.bancoId === 'string' ? currentReceita.bancoId : currentReceita.bancoId?._id || '',
-        recorrente: currentReceita.recorrente || false,
-        observacoes: currentReceita.observacoes || '',
+        descricao: initialData.descricao || '',
+        valor: initialData.valor || 0,
+        data: initialData.data ? toLocalDateString(initialData.data) : getLocalDateString(),
+        categoriaId: typeof initialData.categoriaId === 'string' ? initialData.categoriaId : initialData.categoriaId?._id || '',
+        bancoId: typeof initialData.bancoId === 'string' ? initialData.bancoId : initialData.bancoId?._id || '',
+        recorrente: initialData.recorrente || false,
+        observacoes: initialData.observacoes || '',
       });
     } else if (mode === 'create') {
       setFormData({
@@ -79,7 +78,7 @@ const ReceitaModal: React.FC<ReceitaModalProps> = ({ isOpen, onClose, mode }) =>
       setComprovante(null);
     }
     setErrors({});
-  }, [mode, currentReceita, isOpen]);
+  }, [mode, initialData, isOpen]);
 
   const validateForm = () => {
     const newErrors: Record<string, string> = {};
@@ -115,39 +114,16 @@ const ReceitaModal: React.FC<ReceitaModalProps> = ({ isOpen, onClose, mode }) =>
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     
-    if (!validateForm()) return;
-
-    try {
-      let submitData: any;
-
-      if (comprovante) {
-        submitData = new FormData();
-        Object.entries(formData).forEach(([key, value]) => {
-          submitData.append(key, value.toString());
-        });
-        submitData.append('comprovante', comprovante);
-      } else {
-        submitData = { ...formData };
+    if (validateForm() && onSave) {
+      try {
+        await onSave(formData);
+        onClose();
+      } catch (error) {
+        // Error handling is done in parent component or hook
       }
-
-      if (mode === 'create') {
-        await dispatch(createReceita(submitData)).unwrap();
-        toast.success('Receita criada com sucesso!');
-      } else if (mode === 'edit' && currentReceita) {
-        await dispatch(updateReceita({ 
-          id: currentReceita._id, 
-          data: submitData 
-        })).unwrap();
-        toast.success('Receita atualizada com sucesso!');
-      }
-      
-      dispatch(fetchReceitas({}));
-      onClose();
-    } catch (error) {
-      toast.error('Erro ao salvar receita. Verifique os dados.');
-      console.error('Erro ao salvar receita:', error);
     }
   };
+
 
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
     const { name, value } = e.target;
@@ -373,12 +349,12 @@ const ReceitaModal: React.FC<ReceitaModalProps> = ({ isOpen, onClose, mode }) =>
           <div className="space-y-2">
             <Label htmlFor="comprovante" className="text-sm font-medium">Comprovante</Label>
             {isReadOnly ? (
-              currentReceita?.comprovante ? (
+              initialData?.comprovante ? (
                 <Button
                   type="button"
                   variant="outline"
                   className="w-full flex items-center justify-center gap-2"
-                  onClick={() => window.open(currentReceita.comprovante, '_blank')}
+                  onClick={() => window.open(initialData.comprovante, '_blank')}
                 >
                   Visualizar Comprovante
                 </Button>

@@ -3,8 +3,7 @@
 import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
-import { useAppDispatch, useAppSelector } from '@/store/hooks';
-import { register } from '@/store/slices/authSlice';
+import { useAuth } from '@/contexts/AuthContext';
 import { Loader2, Lock, Mail, User } from 'lucide-react';
 
 import { Button } from "@/components/ui/button"
@@ -22,8 +21,8 @@ import { toast } from "sonner"
 
 export default function RegisterPage() {
   const router = useRouter();
-  const dispatch = useAppDispatch();
-  const { isLoading, error, isAuthenticated } = useAppSelector((state) => state.auth);
+  const { signUpWithEmail, loading, user } = useAuth();
+  const [error, setError] = useState<string | null>(null);
 
   const [formData, setFormData] = useState({
     name: '',
@@ -33,16 +32,10 @@ export default function RegisterPage() {
   });
 
   useEffect(() => {
-    if (isAuthenticated) {
+    if (user) {
       router.push('/dashboard');
     }
-  }, [isAuthenticated, router]);
-
-  useEffect(() => {
-    if (error) {
-        toast.error(error);
-    }
-  }, [error]);
+  }, [user, router]);
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const { name, value } = e.target;
@@ -51,6 +44,7 @@ export default function RegisterPage() {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    setError(null);
 
     if (formData.password !== formData.confirmPassword) {
       toast.error('As senhas não coincidem');
@@ -62,15 +56,15 @@ export default function RegisterPage() {
       return;
     }
 
-    const result = await dispatch(register({
-      name: formData.name,
-      email: formData.email,
-      password: formData.password
-    }));
-
-    if (register.fulfilled.match(result)) {
+    try {
+      const { error } = await signUpWithEmail(formData.email, formData.password, formData.name);
+      if (error) throw error;
+      
       toast.success("Conta criada com sucesso! Redirecionando...");
       router.push('/dashboard');
+    } catch (err: any) {
+      setError(err.message || 'Erro ao criar conta');
+      toast.error(err.message || 'Erro ao criar conta');
     }
   };
 
@@ -98,6 +92,7 @@ export default function RegisterPage() {
                   required
                   value={formData.name}
                   onChange={handleChange}
+                  autoComplete="name"
                 />
               </div>
             </div>
@@ -114,6 +109,7 @@ export default function RegisterPage() {
                   required
                   value={formData.email}
                   onChange={handleChange}
+                  autoComplete="email"
                 />
               </div>
             </div>
@@ -130,6 +126,7 @@ export default function RegisterPage() {
                   required
                   value={formData.password}
                   onChange={handleChange}
+                  autoComplete="new-password"
                 />
               </div>
             </div>
@@ -146,11 +143,12 @@ export default function RegisterPage() {
                   required
                   value={formData.confirmPassword}
                   onChange={handleChange}
+                  autoComplete="new-password"
                 />
               </div>
             </div>
-            <Button type="submit" className="w-full" disabled={isLoading}>
-              {isLoading ? (
+            <Button type="submit" className="w-full" disabled={loading}>
+              {loading ? (
                 <>
                   <Loader2 className="mr-2 h-4 w-4 animate-spin" />
                   Criando conta...

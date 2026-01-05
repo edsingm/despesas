@@ -1,18 +1,12 @@
 'use client';
 
 import React, { useEffect, useState } from 'react';
-import { useAppDispatch, useAppSelector } from '@/store/hooks';
-import { 
-  fetchCartoes, 
-  deleteCartao, 
-  clearCurrentCartao,
-  setCurrentCartao 
-} from '@/store/slices/cartaoSlice';
+import { useCartoes } from '@/hooks/useCartoes';
 import { Plus, Edit, Trash2, CreditCard, Eye, Calendar, AlertTriangle } from 'lucide-react';
 import CartaoModal from '@/components/modals/CartaoModal';
 import AuthGuard from '@/components/auth/AuthGuard';
 import AppLayout from '@/components/layout/AppLayout';
-import { Cartao } from '@/types';
+import { Cartao, CartaoForm } from '@/types';
 import { Button } from "@/components/ui/button";
 import {
   Card,
@@ -28,26 +22,34 @@ import { cn } from "@/lib/utils";
 import { toast } from "sonner";
 
 function CartoesContent() {
-  const dispatch = useAppDispatch();
-  const { cartoes, isLoading } = useAppSelector((state) => state.cartao);
+  const { 
+    cartoes, 
+    loading, 
+    currentCartao, 
+    setCurrentCartao, 
+    fetchCartoes, 
+    createCartao, 
+    updateCartao, 
+    deleteCartao 
+  } = useCartoes();
+
   const [showModal, setShowModal] = useState(false);
   const [modalType, setModalType] = useState<'create' | 'edit' | 'view'>('create');
   const [showDeleteModal, setShowDeleteModal] = useState(false);
   const [cartaoToDelete, setCartaoToDelete] = useState<{ id: string; nome: string } | null>(null);
-  const [isDeleting, setIsDeleting] = useState(false);
 
   useEffect(() => {
-    dispatch(fetchCartoes({}));
-  }, [dispatch]);
+    fetchCartoes();
+  }, [fetchCartoes]);
 
   const handleEdit = (cartao: Cartao) => {
-    dispatch(setCurrentCartao(cartao));
+    setCurrentCartao(cartao);
     setModalType('edit');
     setShowModal(true);
   };
 
   const handleView = (cartao: Cartao) => {
-    dispatch(setCurrentCartao(cartao));
+    setCurrentCartao(cartao);
     setModalType('view');
     setShowModal(true);
   };
@@ -60,25 +62,23 @@ function CartoesContent() {
   const confirmDelete = async () => {
     if (!cartaoToDelete) return;
 
-    setIsDeleting(true);
-    try {
-      await dispatch(deleteCartao(cartaoToDelete.id)).unwrap();
-      dispatch(fetchCartoes({}));
-      toast.success("Cartão excluído com sucesso!");
-      setShowDeleteModal(false);
-    } catch (error) {
-      console.error('Erro ao excluir cartão:', error);
-      toast.error("Erro ao excluir cartão. Tente novamente.");
-    } finally {
-      setIsDeleting(false);
-      setCartaoToDelete(null);
-    }
+    await deleteCartao(cartaoToDelete.id);
+    setShowDeleteModal(false);
+    setCartaoToDelete(null);
   };
 
   const handleCreate = () => {
-    dispatch(clearCurrentCartao());
+    setCurrentCartao(null);
     setModalType('create');
     setShowModal(true);
+  };
+
+  const handleSave = async (data: CartaoForm) => {
+    if (modalType === 'create') {
+      await createCartao(data);
+    } else if (modalType === 'edit' && currentCartao) {
+      await updateCartao(currentCartao._id, data);
+    }
   };
 
   const formatCurrency = (value: number) => {
@@ -134,7 +134,7 @@ function CartoesContent() {
 
       {/* Lista de cartões */}
       <div className="space-y-6">
-        {isLoading ? (
+        {loading ? (
           <div className="flex items-center justify-center h-64">
             <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div>
           </div>
@@ -315,6 +315,9 @@ function CartoesContent() {
         isOpen={showModal}
         onClose={() => setShowModal(false)}
         mode={modalType}
+        initialData={currentCartao}
+        onSave={handleSave}
+        isLoading={loading}
       />
 
       {/* Modal de Confirmação de Exclusão */}
@@ -326,7 +329,7 @@ function CartoesContent() {
          itemName={cartaoToDelete?.nome || ""}
          itemType="cartão"
          warningMessage="Todas as despesas vinculadas a este cartão permanecerão no sistema."
-         isLoading={isDeleting}
+         isLoading={loading}
        />
     </div>
   );

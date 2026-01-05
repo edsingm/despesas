@@ -1,8 +1,7 @@
 "use client";
 
-import { useAppDispatch, useAppSelector } from '@/store/hooks';
-import { logout } from '@/store/slices/authSlice';
-import { toggleSidebar } from '@/store/slices/uiSlice';
+import { useState } from 'react';
+import { useAuth } from '@/contexts/AuthContext';
 import Sidebar from './Sidebar';
 import Header from './Header';
 
@@ -11,16 +10,25 @@ interface AppLayoutProps {
 }
 
 const AppLayout: React.FC<AppLayoutProps> = ({ children }) => {
-  const dispatch = useAppDispatch();
-  const { sidebarOpen } = useAppSelector((state) => state.ui);
-  const { user } = useAppSelector((state) => state.auth);
+  const { user: supabaseUser, signOut } = useAuth();
+  const [sidebarOpen, setSidebarOpen] = useState(false);
+
+  // Adaptar usuário do Supabase para o tipo da aplicação
+  const user = supabaseUser ? {
+    id: supabaseUser.id,
+    name: supabaseUser.user_metadata?.name || supabaseUser.email?.split('@')[0] || 'Usuário',
+    email: supabaseUser.email || '',
+    createdAt: supabaseUser.created_at,
+    updatedAt: supabaseUser.updated_at || new Date().toISOString(),
+    avatar: supabaseUser.user_metadata?.avatar_url
+  } : null;
 
   const handleLogout = () => {
-    dispatch(logout());
+    signOut();
   };
 
   const handleToggleSidebar = () => {
-    dispatch(toggleSidebar());
+    setSidebarOpen(prev => !prev);
   };
 
   return (

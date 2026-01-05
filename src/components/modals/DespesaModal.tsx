@@ -1,14 +1,9 @@
 import { useState, useEffect } from 'react';
-import { useAppDispatch, useAppSelector } from '@/store/hooks';
-import { createDespesa, updateDespesa, fetchDespesas } from '@/store/slices/despesaSlice';
-import { fetchCategoriasDespesa } from '@/store/slices/categoriaSlice';
-import { fetchBancos } from '@/store/slices/bancoSlice';
-import { fetchCartoes } from '@/store/slices/cartaoSlice';
 import { CurrencyInput } from '@/components/ui/currency-input';
 import { CreditCard, X, Tag } from 'lucide-react';
 import { renderCategoryIcon } from '@/lib/categoryIcons';
 import { getLocalDateString, toLocalDateString } from '@/lib/dateUtils';
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { NumberInput } from "@/components/ui/number-input";
@@ -23,21 +18,32 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { toast } from 'sonner';
-import { cn, formatCurrency } from '@/lib/utils';
+import { cn } from '@/lib/utils';
+import { Despesa, DespesaForm, Categoria, Banco, Cartao } from '@/types';
 
 interface DespesaModalProps {
   isOpen: boolean;
   onClose: () => void;
   mode: 'create' | 'edit' | 'view';
+  initialData?: Despesa | null;
+  onSave?: (data: DespesaForm) => Promise<void>;
+  isLoading?: boolean;
+  categorias: Categoria[];
+  bancos: Banco[];
+  cartoes: Cartao[];
 }
 
-const DespesaModal: React.FC<DespesaModalProps> = ({ isOpen, onClose, mode }) => {
-  const dispatch = useAppDispatch();
-  const { currentDespesa, isLoading } = useAppSelector((state) => state.despesa);
-  const { categoriasDespesa: categorias } = useAppSelector((state) => state.categoria);
-  const { bancos } = useAppSelector((state) => state.banco);
-  const { cartoes } = useAppSelector((state) => state.cartao);
-  
+const DespesaModal: React.FC<DespesaModalProps> = ({ 
+  isOpen, 
+  onClose, 
+  mode,
+  initialData,
+  onSave,
+  isLoading = false,
+  categorias,
+  bancos,
+  cartoes
+}) => {
   const [formData, setFormData] = useState<{
     descricao: string;
     valorTotal: number;
@@ -70,28 +76,20 @@ const DespesaModal: React.FC<DespesaModalProps> = ({ isOpen, onClose, mode }) =>
   const [errors, setErrors] = useState<Record<string, string>>({});
 
   useEffect(() => {
-    if (isOpen) {
-      dispatch(fetchCategoriasDespesa());
-      dispatch(fetchBancos({}));
-      dispatch(fetchCartoes({}));
-    }
-  }, [isOpen, dispatch]);
-
-  useEffect(() => {
-    if (mode === 'edit' && currentDespesa) {
+    if (mode === 'edit' && initialData) {
       setFormData({
-        descricao: currentDespesa.descricao || '',
-        valorTotal: currentDespesa.valorTotal || 0,
-        data: currentDespesa.data ? toLocalDateString(currentDespesa.data) : getLocalDateString(),
-        categoriaId: typeof currentDespesa.categoriaId === 'string' ? currentDespesa.categoriaId : currentDespesa.categoriaId?._id || '',
-        bancoId: typeof currentDespesa.bancoId === 'string' ? currentDespesa.bancoId : currentDespesa.bancoId?._id || '',
-        cartaoId: typeof currentDespesa.cartaoId === 'string' ? currentDespesa.cartaoId : currentDespesa.cartaoId?._id || '',
-        formaPagamento: (['debito', 'credito', 'dinheiro'].includes(currentDespesa.formaPagamento)) ? currentDespesa.formaPagamento as 'debito' | 'credito' | 'dinheiro' : 'debito',
-        parcelado: currentDespesa.parcelado || false,
-        numeroParcelas: currentDespesa.numeroParcelas || 1,
-        recorrente: currentDespesa.recorrente || false,
-        tipoRecorrencia: (['mensal', 'anual'].includes(currentDespesa.tipoRecorrencia || '')) ? currentDespesa.tipoRecorrencia as 'mensal' | 'anual' : 'mensal',
-        observacoes: currentDespesa.observacoes || '',
+        descricao: initialData.descricao || '',
+        valorTotal: initialData.valorTotal || 0,
+        data: initialData.data ? toLocalDateString(initialData.data) : getLocalDateString(),
+        categoriaId: typeof initialData.categoriaId === 'string' ? initialData.categoriaId : initialData.categoriaId?._id || '',
+        bancoId: typeof initialData.bancoId === 'string' ? initialData.bancoId || '' : initialData.bancoId?._id || '',
+        cartaoId: typeof initialData.cartaoId === 'string' ? initialData.cartaoId || '' : initialData.cartaoId?._id || '',
+        formaPagamento: (['debito', 'credito', 'dinheiro'].includes(initialData.formaPagamento)) ? initialData.formaPagamento as 'debito' | 'credito' | 'dinheiro' : 'debito',
+        parcelado: initialData.parcelado || false,
+        numeroParcelas: initialData.numeroParcelas || 1,
+        recorrente: initialData.recorrente || false,
+        tipoRecorrencia: (['mensal', 'anual'].includes(initialData.tipoRecorrencia || '')) ? initialData.tipoRecorrencia as 'mensal' | 'anual' : 'mensal',
+        observacoes: initialData.observacoes || '',
       });
     } else if (mode === 'create') {
       setFormData({
@@ -111,7 +109,7 @@ const DespesaModal: React.FC<DespesaModalProps> = ({ isOpen, onClose, mode }) =>
       setComprovante(null);
     }
     setErrors({});
-  }, [mode, currentDespesa, isOpen]);
+  }, [mode, initialData, isOpen]);
 
   const validateForm = () => {
     const newErrors: Record<string, string> = {};
@@ -168,44 +166,30 @@ const DespesaModal: React.FC<DespesaModalProps> = ({ isOpen, onClose, mode }) =>
     
     if (!validateForm()) return;
 
+    if (!onSave) return;
+
     try {
-      let submitData: any;
+      // Construct the DespesaForm object
+      const submitData: any = { ...formData }; // Using any to manipulate fields easier before casting
+
+      submitData.numeroParcelas = typeof submitData.numeroParcelas === 'string' 
+        ? parseInt(submitData.numeroParcelas) || 1 
+        : submitData.numeroParcelas;
+      
+      if (formData.formaPagamento === 'credito') {
+        if (!submitData.bancoId) delete submitData.bancoId;
+      } else {
+        if (!submitData.cartaoId) delete submitData.cartaoId;
+      }
 
       if (comprovante) {
-        submitData = new FormData();
-        Object.entries(formData).forEach(([key, value]) => {
-          submitData.append(key, value.toString());
-        });
-        submitData.append('comprovante', comprovante);
-      } else {
-        submitData = { ...formData };
-        
-        submitData.numeroParcelas = typeof submitData.numeroParcelas === 'string' 
-          ? parseInt(submitData.numeroParcelas) || 1 
-          : submitData.numeroParcelas;
-        
-        if (formData.formaPagamento === 'credito') {
-          if (!submitData.bancoId) delete submitData.bancoId;
-        } else {
-          if (!submitData.cartaoId) delete submitData.cartaoId;
-        }
+        submitData.comprovante = comprovante;
       }
 
-      if (mode === 'create') {
-        await dispatch(createDespesa(submitData)).unwrap();
-        toast.success('Despesa criada com sucesso!');
-      } else if (mode === 'edit' && currentDespesa) {
-        await dispatch(updateDespesa({ 
-          id: currentDespesa._id, 
-          data: submitData 
-        })).unwrap();
-        toast.success('Despesa atualizada com sucesso!');
-      }
-      
-      dispatch(fetchDespesas({}));
-      onClose();
+      await onSave(submitData as DespesaForm);
+      // Success toast is handled by parent/hook
     } catch (error: any) {
-      toast.error('Erro ao salvar despesa. Verifique os dados.');
+      // Error toast is handled by parent/hook
       console.error('Erro ao salvar despesa:', error);
     }
   };
@@ -504,21 +488,12 @@ const DespesaModal: React.FC<DespesaModalProps> = ({ isOpen, onClose, mode }) =>
                           name="numeroParcelas"
                           value={formData.numeroParcelas}
                           onValueChange={(val) => {
-                            setFormData(prev => ({ ...prev, numeroParcelas: val || '' }));
-                            if (errors.numeroParcelas) {
-                              setErrors(prev => ({ ...prev, numeroParcelas: '' }));
-                            }
+                            setFormData(prev => ({ ...prev, numeroParcelas: val }));
                           }}
+                          readOnly={isReadOnly}
                           min={2}
                           max={60}
-                          readOnly={isReadOnly}
-                          className={cn(errors.numeroParcelas && "border-destructive focus-visible:ring-destructive")}
                         />
-                        {formData.valorTotal > 0 && (
-                          <p className="text-[10px] text-muted-foreground italic">
-                            {formData.numeroParcelas}x de {formatCurrency(formData.valorTotal / (Number(formData.numeroParcelas) || 1))}
-                          </p>
-                        )}
                         {errors.numeroParcelas && (
                           <p className="text-xs font-medium text-destructive">{errors.numeroParcelas}</p>
                         )}
@@ -526,7 +501,7 @@ const DespesaModal: React.FC<DespesaModalProps> = ({ isOpen, onClose, mode }) =>
                     )}
                   </div>
                 )}
-
+                
                 {/* Recorrente */}
                 <div className="space-y-3">
                   <div className="flex items-center space-x-2">
@@ -534,23 +509,21 @@ const DespesaModal: React.FC<DespesaModalProps> = ({ isOpen, onClose, mode }) =>
                       id="recorrente" 
                       checked={formData.recorrente}
                       onCheckedChange={(checked) => handleCheckboxChange('recorrente', checked as boolean)}
-                      disabled={isReadOnly || formData.parcelado}
+                      disabled={isReadOnly || (formData.parcelado && canParcelar)}
                     />
-                    <Label htmlFor="recorrente" className={cn("text-sm font-medium cursor-pointer", (isReadOnly || formData.parcelado) && "opacity-50")}>
-                      Despesa Recorrente
-                    </Label>
+                    <Label htmlFor="recorrente" className="text-sm font-medium cursor-pointer">Despesa Recorrente (Fixa)</Label>
                   </div>
-                  
+
                   {formData.recorrente && (
                     <div className="pl-6 space-y-2 animate-in fade-in slide-in-from-left-2 duration-200">
-                      <Label htmlFor="tipoRecorrencia" className="text-xs font-medium">Tipo de Recorrência</Label>
+                      <Label htmlFor="tipoRecorrencia" className="text-xs font-medium">Frequência</Label>
                       <Select
                         value={formData.tipoRecorrencia}
-                        onValueChange={(value: any) => handleSelectChange('tipoRecorrencia', value)}
+                        onValueChange={(value) => handleSelectChange('tipoRecorrencia', value)}
                         disabled={isReadOnly}
                       >
-                        <SelectTrigger className="h-8">
-                          <SelectValue placeholder="Selecione" />
+                        <SelectTrigger>
+                          <SelectValue />
                         </SelectTrigger>
                         <SelectContent>
                           <SelectItem value="mensal">Mensal</SelectItem>
@@ -571,68 +544,49 @@ const DespesaModal: React.FC<DespesaModalProps> = ({ isOpen, onClose, mode }) =>
                   value={formData.observacoes}
                   onChange={handleInputChange}
                   readOnly={isReadOnly}
-                  placeholder="Informações adicionais..."
-                  className="resize-none min-h-[100px]"
+                  placeholder="Detalhes adicionais..."
+                  className="resize-none min-h-[80px]"
                 />
               </div>
+              
+              {/* Comprovante - Visual apenas */}
+              {!isReadOnly && (
+                <div className="space-y-2">
+                  <Label htmlFor="comprovante" className="text-sm font-medium">Comprovante</Label>
+                  <div className="flex items-center gap-2">
+                    <Input
+                      id="comprovante"
+                      type="file"
+                      onChange={handleFileChange}
+                      className="cursor-pointer"
+                      accept="image/*,.pdf"
+                    />
+                    {comprovante && (
+                      <Button 
+                        type="button" 
+                        variant="ghost" 
+                        size="icon"
+                        onClick={removeFile}
+                      >
+                        <X className="h-4 w-4" />
+                      </Button>
+                    )}
+                  </div>
+                </div>
+              )}
             </div>
           </div>
 
-          {/* Comprovante */}
-          <div className="space-y-2 border-t pt-4">
-            <Label htmlFor="comprovante" className="text-sm font-medium">Comprovante</Label>
-            {isReadOnly ? (
-              currentDespesa?.comprovante ? (
-                <Button
-                  type="button"
-                  variant="outline"
-                  className="w-full flex items-center justify-center gap-2"
-                  onClick={() => window.open(currentDespesa.comprovante, '_blank')}
-                >
-                  Visualizar Comprovante
-                </Button>
-              ) : (
-                <p className="text-sm text-muted-foreground italic">Nenhum comprovante anexado.</p>
-              )
-            ) : (
-              <div className="flex flex-col gap-3">
-                <Input
-                  type="file"
-                  id="comprovante"
-                  onChange={handleFileChange}
-                  accept="image/*,application/pdf"
-                  className="cursor-pointer"
-                />
-                {comprovante && (
-                  <div className="flex items-center justify-between p-2 bg-destructive/5 rounded-md border border-destructive/10">
-                    <span className="text-xs font-medium text-destructive truncate max-w-[300px]">
-                      {comprovante.name}
-                    </span>
-                    <Button
-                      type="button"
-                      variant="ghost"
-                      size="sm"
-                      onClick={removeFile}
-                      className="h-6 w-6 p-0 text-destructive hover:bg-destructive/10"
-                    >
-                      <X className="h-3 w-3" />
-                    </Button>
-                  </div>
-                )}
-              </div>
-            )}
-          </div>
-
-          <DialogFooter className="pt-4 border-t">
+          <div className="flex justify-end gap-2 pt-4 border-t">
             <Button type="button" variant="outline" onClick={onClose} disabled={isLoading}>
-              {isReadOnly ? 'Fechar' : 'Cancelar'}
+              Cancelar
             </Button>
             {!isReadOnly && (
-              <Button type="submit" disabled={isLoading} className="bg-destructive hover:bg-destructive/90 text-white">
-                {isLoading ? 'Salvando...' : mode === 'create' ? 'Criar Despesa' : 'Salvar Alterações'}
+              <Button type="submit" disabled={isLoading}>
+                {isLoading ? 'Salvando...' : 'Salvar'}
               </Button>
             )}
-          </DialogFooter>
+          </div>
         </form>
       </DialogContent>
     </Dialog>

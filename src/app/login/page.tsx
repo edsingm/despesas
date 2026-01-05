@@ -3,8 +3,7 @@
 import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
-import { useAppDispatch, useAppSelector } from '@/store/hooks';
-import { login } from '@/store/slices/authSlice';
+import { useAuth } from '@/contexts/AuthContext';
 import { Loader2, Lock, Mail } from 'lucide-react';
 
 import { Button } from "@/components/ui/button"
@@ -22,8 +21,8 @@ import { toast } from "sonner"
 
 export default function LoginPage() {
   const router = useRouter();
-  const dispatch = useAppDispatch();
-  const { isLoading, error, isAuthenticated } = useAppSelector((state) => state.auth);
+  const { signInWithEmail, loading, user } = useAuth();
+  const [error, setError] = useState<string | null>(null);
 
   const [formData, setFormData] = useState({
     email: '',
@@ -31,16 +30,10 @@ export default function LoginPage() {
   });
 
   useEffect(() => {
-    if (isAuthenticated) {
+    if (user) {
       router.push('/dashboard');
     }
-  }, [isAuthenticated, router]);
-
-  useEffect(() => {
-    if (error) {
-        toast.error(error);
-    }
-  }, [error]);
+  }, [user, router]);
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const { name, value } = e.target;
@@ -49,10 +42,16 @@ export default function LoginPage() {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    const result = await dispatch(login(formData));
-    if (login.fulfilled.match(result)) {
+    setError(null);
+    try {
+      const { error } = await signInWithEmail(formData.email, formData.password);
+      if (error) throw error;
+      
       toast.success("Login realizado com sucesso!");
       router.push('/dashboard');
+    } catch (err: any) {
+      setError(err.message || 'Erro ao realizar login');
+      toast.error(err.message || 'Erro ao realizar login');
     }
   };
 
@@ -80,6 +79,7 @@ export default function LoginPage() {
                   required
                   value={formData.email}
                   onChange={handleChange}
+                  autoComplete="email"
                 />
               </div>
             </div>
@@ -96,11 +96,12 @@ export default function LoginPage() {
                   required
                   value={formData.password}
                   onChange={handleChange}
+                  autoComplete="current-password"
                 />
               </div>
             </div>
-            <Button type="submit" className="w-full" disabled={isLoading}>
-              {isLoading ? (
+            <Button type="submit" className="w-full" disabled={loading}>
+              {loading ? (
                 <>
                   <Loader2 className="mr-2 h-4 w-4 animate-spin" />
                   Entrando...

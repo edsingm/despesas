@@ -1,6 +1,4 @@
 import { useState, useEffect } from 'react';
-import { useAppDispatch, useAppSelector } from '@/store/hooks';
-import { createBanco, updateBanco, fetchBancos } from '@/store/slices/bancoSlice';
 import {
   Dialog,
   DialogContent,
@@ -20,23 +18,30 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { Checkbox } from "@/components/ui/checkbox";
-import { Building2 } from 'lucide-react';
-import { toast } from "sonner";
+import { Building2, Loader2 } from 'lucide-react';
 import { cn, formatCurrency } from "@/lib/utils";
+import { Banco, BancoForm } from '@/types';
 
 interface BancoModalProps {
   isOpen: boolean;
   onClose: () => void;
   mode: 'create' | 'edit' | 'view';
+  initialData?: Banco | null;
+  onSave?: (data: BancoForm) => Promise<void>;
+  isLoading?: boolean;
 }
 
-const BancoModal: React.FC<BancoModalProps> = ({ isOpen, onClose, mode }) => {
-  const dispatch = useAppDispatch();
-  const { currentBanco, isLoading } = useAppSelector((state) => state.banco);
-  
-  const [formData, setFormData] = useState({
+const BancoModal: React.FC<BancoModalProps> = ({ 
+  isOpen, 
+  onClose, 
+  mode, 
+  initialData, 
+  onSave, 
+  isLoading = false 
+}) => {
+  const [formData, setFormData] = useState<BancoForm>({
     nome: '',
-    tipo: 'conta_corrente' as 'conta_corrente' | 'conta_poupanca' | 'conta_investimento',
+    tipo: 'conta_corrente',
     agencia: '',
     conta: '',
     saldoInicial: 0,
@@ -46,14 +51,14 @@ const BancoModal: React.FC<BancoModalProps> = ({ isOpen, onClose, mode }) => {
   const [errors, setErrors] = useState<Record<string, string>>({});
 
   useEffect(() => {
-    if (mode === 'edit' && currentBanco) {
+    if (mode === 'edit' && initialData) {
       setFormData({
-        nome: currentBanco.nome || '',
-        tipo: currentBanco.tipo || 'conta_corrente',
-        agencia: currentBanco.agencia || '',
-        conta: currentBanco.conta || '',
-        saldoInicial: currentBanco.saldoInicial || 0,
-        ativo: currentBanco.ativo !== undefined ? currentBanco.ativo : true,
+        nome: initialData.nome || '',
+        tipo: initialData.tipo || 'conta_corrente',
+        agencia: initialData.agencia || '',
+        conta: initialData.conta || '',
+        saldoInicial: initialData.saldoInicial || 0,
+        ativo: initialData.ativo !== undefined ? initialData.ativo : true,
       });
     } else if (mode === 'create') {
       setFormData({
@@ -66,7 +71,7 @@ const BancoModal: React.FC<BancoModalProps> = ({ isOpen, onClose, mode }) => {
       });
     }
     setErrors({});
-  }, [mode, currentBanco, isOpen]);
+  }, [mode, initialData, isOpen]);
 
   const validateForm = () => {
     const newErrors: Record<string, string> = {};
@@ -79,11 +84,11 @@ const BancoModal: React.FC<BancoModalProps> = ({ isOpen, onClose, mode }) => {
       newErrors.tipo = 'Tipo é obrigatório';
     }
 
-    if (!formData.agencia.trim()) {
+    if (!formData.agencia?.trim()) {
       newErrors.agencia = 'Agência é obrigatória';
     }
 
-    if (!formData.conta.trim()) {
+    if (!formData.conta?.trim()) {
       newErrors.conta = 'Conta é obrigatória';
     }
 
@@ -96,23 +101,9 @@ const BancoModal: React.FC<BancoModalProps> = ({ isOpen, onClose, mode }) => {
     
     if (!validateForm()) return;
 
-    try {
-      if (mode === 'create') {
-        await dispatch(createBanco(formData)).unwrap();
-        toast.success("Conta bancária criada com sucesso!");
-      } else if (mode === 'edit' && currentBanco) {
-        await dispatch(updateBanco({ 
-          id: currentBanco._id, 
-          data: formData 
-        })).unwrap();
-        toast.success("Conta bancária atualizada com sucesso!");
-      }
-      
-      dispatch(fetchBancos(undefined));
+    if (onSave) {
+      await onSave(formData);
       onClose();
-    } catch (error) {
-      console.error('Erro ao salvar banco:', error);
-      toast.error("Erro ao salvar conta bancária");
     }
   };
 
@@ -275,27 +266,27 @@ const BancoModal: React.FC<BancoModalProps> = ({ isOpen, onClose, mode }) => {
           </div>
 
           {/* Informações adicionais no modo visualização */}
-          {mode === 'view' && currentBanco && (
+          {mode === 'view' && initialData && (
             <div className="border-t pt-4 space-y-3">
               <h3 className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">Resumo da Conta</h3>
               <div className="space-y-2">
                 <div className="text-sm flex justify-between p-2 rounded-md bg-primary/5">
                   <span className="font-medium text-muted-foreground">Saldo atual:</span>
                   <span className="font-bold text-primary">
-                    {formatCurrency(currentBanco.saldoAtual || currentBanco.saldoInicial)}
+                    {formatCurrency(initialData.saldoAtual || initialData.saldoInicial)}
                   </span>
                 </div>
                 <div className="text-xs flex justify-between px-2">
                   <span className="text-muted-foreground">Criada em:</span>
                   <span className="text-foreground">
-                    {new Date(currentBanco.createdAt).toLocaleString('pt-BR')}
+                    {new Date(initialData.createdAt).toLocaleString('pt-BR')}
                   </span>
                 </div>
-                {currentBanco.updatedAt && (
+                {initialData.updatedAt && (
                   <div className="text-xs flex justify-between px-2">
                     <span className="text-muted-foreground">Última atualização:</span>
                     <span className="text-foreground">
-                      {new Date(currentBanco.updatedAt).toLocaleString('pt-BR')}
+                      {new Date(initialData.updatedAt).toLocaleString('pt-BR')}
                     </span>
                   </div>
                 )}

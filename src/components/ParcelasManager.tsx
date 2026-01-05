@@ -1,6 +1,4 @@
 import { useState } from 'react';
-import { useAppDispatch, useAppSelector } from '../store/hooks';
-import { updateParcela, fetchDespesas } from '../store/slices/despesaSlice';
 import { Check, X, Calendar, DollarSign, CreditCard } from 'lucide-react';
 import { formatDateBR, getLocalDateString } from '../lib/dateUtils';
 import { Button } from "@/components/ui/button";
@@ -15,41 +13,21 @@ import {
   TableRow,
 } from "@/components/ui/table";
 import { cn } from "@/lib/utils";
-
-interface Parcela {
-  numero: number;
-  valor: number;
-  dataVencimento: string;
-  paga: boolean;
-  dataPagamento?: string;
-}
-
-interface Despesa {
-  _id: string;
-  descricao: string;
-  valorTotal: number;
-  numeroParcelas: number;
-  parcelas: Parcela[];
-}
+import { Despesa, Parcela } from '@/types';
 
 interface ParcelasManagerProps {
-  despesaId: string;
-  onClose?: () => void;
+  despesa: Despesa;
+  onUpdateParcela: (despesaId: string, parcelaIndex: number, paga: boolean) => Promise<void>;
 }
 
-const ParcelasManager: React.FC<ParcelasManagerProps> = ({ despesaId, onClose }) => {
-  const dispatch = useAppDispatch();
+const ParcelasManager: React.FC<ParcelasManagerProps> = ({ despesa, onUpdateParcela }) => {
   const [isLoading, setIsLoading] = useState(false);
   
-  // Buscar despesa do Redux
-  const despesas = useAppSelector((state) => state.despesa.despesas);
-  const despesa = despesas.find(d => d._id === despesaId);
-
   // Se não encontrar a despesa, não renderizar nada
   if (!despesa || !despesa.parcelas) {
     return (
       <div className="bg-white rounded-lg shadow-lg p-6">
-        <p className="text-gray-500">Despesa não encontrada.</p>
+        <p className="text-gray-500">Despesa não encontrada ou sem parcelas.</p>
       </div>
     );
   }
@@ -68,16 +46,7 @@ const ParcelasManager: React.FC<ParcelasManagerProps> = ({ despesaId, onClose })
   const handleToggleParcela = async (parcelaIndex: number, paga: boolean) => {
     setIsLoading(true);
     try {
-      await dispatch(updateParcela({
-        id: despesa._id,
-        parcelaIndex,
-        data: { 
-          paga,
-          dataPagamento: paga ? getLocalDateString() : undefined
-        }
-      })).unwrap();
-      
-      dispatch(fetchDespesas(undefined));
+      await onUpdateParcela(despesa._id, parcelaIndex, paga);
     } catch (error) {
       console.error('Erro ao atualizar parcela:', error);
     } finally {

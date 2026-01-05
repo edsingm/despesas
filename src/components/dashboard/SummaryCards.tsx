@@ -19,7 +19,7 @@ export function SummaryCards({ resumoGeral }: SummaryCardsProps) {
   const cards = [
     {
       title: "Receitas",
-      value: resumoGeral?.receitas?.total ?? 0,
+      value: resumoGeral?.receitas ?? 0,
       icon: TrendingUp,
       description: "Total recebido no mês",
       color: "text-success",
@@ -28,7 +28,7 @@ export function SummaryCards({ resumoGeral }: SummaryCardsProps) {
     },
     {
       title: "Despesas",
-      value: resumoGeral?.despesas?.total ?? 0,
+      value: resumoGeral?.despesas ?? 0,
       icon: TrendingDown,
       description: "Total gasto no mês",
       color: "text-destructive",

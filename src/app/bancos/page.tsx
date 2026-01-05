@@ -1,45 +1,47 @@
 'use client';
 
 import React, { useEffect, useState } from 'react';
-import { useAppDispatch, useAppSelector } from '@/store/hooks';
-import { 
-  fetchBancos, 
-  deleteBanco, 
-  clearCurrentBanco,
-  setCurrentBanco 
-} from '@/store/slices/bancoSlice';
+import { useBancos } from '@/hooks/useBancos';
 import { Plus, Edit, Trash2, Building2, Eye } from 'lucide-react';
 import BancoModal from '@/components/modals/BancoModal';
 import ConfirmDeleteModal from '@/components/modals/ConfirmDeleteModal';
 import AuthGuard from '@/components/auth/AuthGuard';
 import AppLayout from '@/components/layout/AppLayout';
-import { Banco } from '@/types';
+import { Banco, BancoForm } from '@/types';
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { cn } from "@/lib/utils";
 
 function BancosContent() {
-  const dispatch = useAppDispatch();
-  const { bancos, isLoading } = useAppSelector((state) => state.banco);
+  const { 
+    bancos, 
+    loading, 
+    currentBanco, 
+    setCurrentBanco, 
+    fetchBancos, 
+    createBanco, 
+    updateBanco, 
+    deleteBanco 
+  } = useBancos();
+
   const [showModal, setShowModal] = useState(false);
   const [modalType, setModalType] = useState<'create' | 'edit' | 'view'>('create');
   const [showDeleteModal, setShowDeleteModal] = useState(false);
   const [bancoToDelete, setBancoToDelete] = useState<{ id: string; nome: string } | null>(null);
-  const [isDeleting, setIsDeleting] = useState(false);
 
   useEffect(() => {
-    dispatch(fetchBancos({}));
-  }, [dispatch]);
+    fetchBancos();
+  }, [fetchBancos]);
 
   const handleEdit = (banco: Banco) => {
-    dispatch(setCurrentBanco(banco));
+    setCurrentBanco(banco);
     setModalType('edit');
     setShowModal(true);
   };
 
   const handleView = (banco: Banco) => {
-    dispatch(setCurrentBanco(banco));
+    setCurrentBanco(banco);
     setModalType('view');
     setShowModal(true);
   };
@@ -52,23 +54,27 @@ function BancosContent() {
   const confirmDelete = async () => {
     if (!bancoToDelete) return;
     
-    setIsDeleting(true);
     try {
-      await dispatch(deleteBanco(bancoToDelete.id)).unwrap();
-      dispatch(fetchBancos({}));
+      await deleteBanco(bancoToDelete.id);
       setShowDeleteModal(false);
       setBancoToDelete(null);
     } catch (error) {
       console.error('Erro ao excluir banco:', error);
-    } finally {
-      setIsDeleting(false);
     }
   };
 
   const handleCreate = () => {
-    dispatch(clearCurrentBanco());
+    setCurrentBanco(null);
     setModalType('create');
     setShowModal(true);
+  };
+
+  const handleSave = async (data: BancoForm) => {
+    if (modalType === 'create') {
+      await createBanco(data);
+    } else if (modalType === 'edit' && currentBanco) {
+      await updateBanco(currentBanco._id, data);
+    }
   };
 
   const formatCurrency = (value: number) => {
@@ -96,7 +102,7 @@ function BancosContent() {
 
       {/* Lista de bancos */}
       <div className="space-y-6">
-        {isLoading ? (
+        {loading ? (
           <div className="flex items-center justify-center h-64">
             <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div>
           </div>
@@ -245,6 +251,9 @@ function BancosContent() {
         isOpen={showModal}
         onClose={() => setShowModal(false)}
         mode={modalType}
+        initialData={currentBanco}
+        onSave={handleSave}
+        isLoading={loading}
       />
 
       {/* Modal de Confirmação de Exclusão */}
@@ -259,7 +268,7 @@ function BancosContent() {
           title="Excluir Banco"
           itemName={bancoToDelete.nome}
           itemType="banco"
-          isLoading={isDeleting}
+          isLoading={loading}
           warningMessage="Todas as receitas e despesas vinculadas a este banco permanecerão no sistema."
         />
       )}

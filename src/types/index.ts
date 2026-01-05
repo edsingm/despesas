@@ -1,5 +1,3 @@
-// Tipos de dados da aplicação
-
 export interface User {
   _id?: string;
   id?: string;
@@ -145,6 +143,8 @@ export interface CategoriaForm {
 export interface BancoForm {
   nome: string;
   tipo: 'conta_corrente' | 'conta_poupanca' | 'conta_investimento';
+  agencia?: string;
+  conta?: string;
   saldoInicial: number;
   ativo?: boolean;
 }
@@ -186,110 +186,6 @@ export interface DespesaForm {
   comprovante?: File;
 }
 
-// Tipos para API responses
-export interface ApiResponse<T> {
-  success: boolean;
-  message?: string;
-  data?: T;
-  errors?: string[];
-}
-
-export interface PaginatedResponse<T> {
-  success: boolean;
-  message?: string;
-  data: {
-    [key: string]: any;
-    pagination: {
-      page: number;
-      limit: number;
-      total: number;
-      pages: number;
-    };
-    totalFiltrado?: number;
-  };
-}
-
-// Tipos para estatísticas
-export interface CategoriaEstatistica {
-  _id: string;
-  nome: string;
-  cor: string;
-  total: number;
-  quantidade: number;
-}
-
-export interface EvolucaoMensal {
-  _id: { ano: number; mes: number };
-  total: number;
-  quantidade: number;
-}
-
-export interface EstatisticasReceita {
-  resumo: {
-    totalReceitas: number;
-    valorTotal: number;
-    valorMedio: number;
-    maiorReceita: number;
-    menorReceita: number;
-  };
-  receitasPorCategoria: CategoriaEstatistica[];
-  receitasPorBanco: Array<{
-    _id: string;
-    nome: string;
-    tipo: string;
-    total: number;
-    quantidade: number;
-  }>;
-  evolucaoMensal: EvolucaoMensal[];
-}
-
-export interface EstatisticasDespesa {
-  resumo: {
-    totalDespesas: number;
-    valorTotal: number;
-    valorMedio: number;
-    maiorDespesa: number;
-    menorDespesa: number;
-  };
-  despesasPorCategoria: CategoriaEstatistica[];
-  despesasPorFormaPagamento: Array<{
-    _id: string;
-    total: number;
-    quantidade: number;
-  }>;
-  evolucaoMensal: EvolucaoMensal[];
-}
-
-export interface ResumoGeral {
-  receitas: {
-    total: number;
-    pendente: number;
-    pago: number;
-  };
-  despesas: {
-    total: number;
-    pendente: number;
-    pago: number;
-  };
-  saldo: number;
-  percentualDespesa: number;
-}
-
-export interface GraficoPizzaData {
-  _id: string;
-  nome: string;
-  cor: string;
-  total: number;
-  quantidade: number;
-}
-
-export interface GraficoLinhaData {
-  _id: { ano: number; mes: number };
-  receitas: number;
-  despesas: number;
-  saldo: number;
-}
-
 // Tipos para filtros
 export interface FiltroData {
   dataInicio?: string;
@@ -322,18 +218,4 @@ export interface FiltroDespesa extends FiltroData, FiltroPaginacao {
   recorrente?: boolean;
   mes?: string;
   ano?: string;
-}
-
-// Tipos para UI
-export interface LoadingState {
-  isLoading: boolean;
-  error: string | null;
-}
-
-export interface ToastMessage {
-  id: string;
-  type: 'success' | 'error' | 'warning' | 'info';
-  title: string;
-  message?: string;
-  duration?: number;
 }

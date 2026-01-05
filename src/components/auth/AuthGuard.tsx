@@ -2,44 +2,36 @@
 
 import { useEffect } from 'react';
 import { useRouter } from 'next/navigation';
-import { useAppDispatch, useAppSelector } from '@/store/hooks';
-import { getProfile } from '@/store/slices/authSlice';
+import { useAuth } from '@/contexts/AuthContext';
+import { Loader2 } from 'lucide-react';
 
 interface AuthGuardProps {
   children: React.ReactNode;
 }
 
 const AuthGuard: React.FC<AuthGuardProps> = ({ children }) => {
-  const dispatch = useAppDispatch();
   const router = useRouter();
-  const { isAuthenticated, token, user, isLoading } = useAppSelector((state) => state.auth);
+  const { user, loading } = useAuth();
 
   useEffect(() => {
-    // Se tem token mas não tem usuário, buscar perfil
-    if (token && !user && !isLoading) {
-      dispatch(getProfile());
-    }
-  }, [dispatch, token, user, isLoading]);
-
-  useEffect(() => {
-    // Se não está autenticado, redirecionar para login
-    if (!isLoading && (!isAuthenticated || !token)) {
+    // Se não está carregando e não tem usuário, redirecionar para login
+    if (!loading && !user) {
       router.replace('/login');
     }
-  }, [isAuthenticated, token, isLoading, router]);
+  }, [user, loading, router]);
 
-  // Se não está autenticado, não renderizar nada enquanto redireciona
-  if (!isLoading && (!isAuthenticated || !token)) {
-    return null;
-  }
-
-  // Se está carregando o perfil, mostrar loading
-  if (isLoading && !user) {
+  // Se está carregando, mostrar loading
+  if (loading) {
     return (
       <div className="min-h-screen flex items-center justify-center">
-        <div className="animate-spin rounded-full h-32 w-32 border-b-2 border-blue-600"></div>
+        <Loader2 className="h-8 w-8 animate-spin text-primary" />
       </div>
     );
+  }
+
+  // Se não tem usuário, não renderizar nada enquanto redireciona
+  if (!user) {
+    return null;
   }
 
   return <>{children}</>;

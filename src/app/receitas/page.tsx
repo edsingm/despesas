@@ -1,25 +1,12 @@
 'use client';
 
 import { useEffect, useState } from 'react';
-import { useAppDispatch, useAppSelector } from '@/store/hooks';
 import { useSearchParams } from 'next/navigation';
-import {
-  fetchReceitas,
-  deleteReceita,
-  clearCurrentReceita,
-  setCurrentReceita
-} from '@/store/slices/receitaSlice';
-import { fetchCategoriasReceita } from '@/store/slices/categoriaSlice';
-import { fetchBancos } from '@/store/slices/bancoSlice';
 import {
   Plus,
   Search,
   Filter,
-  Edit,
   Trash2,
-  Eye,
-  Download,
-  Calendar as CalendarIcon,
   ChevronDown,
 } from 'lucide-react';
 import { renderCategoryIcon } from '@/lib/categoryIcons';
@@ -32,7 +19,7 @@ import { cn } from "@/lib/utils"
 import ReceitaModal from '@/components/modals/ReceitaModal';
 import ConfirmDeleteModal from '@/components/modals/ConfirmDeleteModal';
 import NoData from '@/components/NoData';
-import type { FiltroReceita, Receita, Categoria } from '@/types';
+import type { Receita, ReceitaForm, Categoria } from '@/types';
 import { formatDateBR } from '@/lib/dateUtils';
 import AuthGuard from '@/components/auth/AuthGuard';
 import AppLayout from '@/components/layout/AppLayout';
@@ -55,7 +42,6 @@ import {
   TableHead,
   TableHeader,
   TableRow,
-  TableFooter
 } from "@/components/ui/table"
 import { Badge } from "@/components/ui/badge"
 import {
@@ -67,6 +53,12 @@ import {
   PaginationPrevious,
   PaginationEllipsis
 } from "@/components/ui/pagination"
+import { useReceitas } from '@/hooks/useReceitas';
+import { useCategorias } from '@/hooks/useCategorias';
+import { useBancos } from '@/hooks/useBancos';
+import { Edit } from 'lucide-react';
+import { Eye } from 'lucide-react';
+import { Calendar as CalendarIcon } from 'lucide-react';
 
 export default function ReceitasPage() {
   return (
@@ -79,11 +71,32 @@ export default function ReceitasPage() {
 }
 
 const ReceitasContent: React.FC = () => {
-  const dispatch = useAppDispatch();
   const searchParams = useSearchParams();
-  const { receitas, isLoading, pagination, totalFiltrado } = useAppSelector((state) => state.receita);
-  const { categoriasReceita: categorias } = useAppSelector((state) => state.categoria);
-  const { bancos } = useAppSelector((state) => state.banco);
+  
+  // Hooks
+  const { 
+    receitas, 
+    totalReceitas,
+    loading: isLoading, 
+    fetchReceitas, 
+    createReceita, 
+    updateReceita, 
+    deleteReceita 
+  } = useReceitas();
+  
+  const { 
+    categorias, 
+    fetchCategorias 
+  } = useCategorias();
+  
+  const { 
+    bancos, 
+    fetchBancos 
+  } = useBancos();
+
+  // State
+  const [currentPage, setCurrentPage] = useState(1);
+  const itemsPerPage = 10;
 
   const [filtros, setFiltros] = useState<{
     busca: string;
@@ -97,21 +110,24 @@ const ReceitasContent: React.FC = () => {
     categoriaId: undefined,
     bancoId: undefined,
     recorrente: undefined,
-    mes: undefined,
-    ano: undefined,
+    mes: (new Date().getMonth() + 1).toString(),
+    ano: new Date().getFullYear().toString(),
   });
+
   const [showFilters, setShowFilters] = useState(false);
   const [showModal, setShowModal] = useState(false);
   const [modalType, setModalType] = useState<'create' | 'edit' | 'view'>('create');
   const [showDeleteModal, setShowDeleteModal] = useState(false);
   const [receitaToDelete, setReceitaToDelete] = useState<{ id: string; nome: string } | null>(null);
+  const [currentReceita, setCurrentReceita] = useState<Receita | null>(null);
   const [isDeleting, setIsDeleting] = useState(false);
 
+  // Initial Data Fetch
   useEffect(() => {
-    dispatch(fetchReceitas({ page: 1, limit: 10 }));
-    dispatch(fetchCategoriasReceita());
-    dispatch(fetchBancos({}));
-  }, [dispatch]);
+    fetchCategorias({ tipo: 'receita', ativo: true });
+    fetchBancos();
+    handleSearch();
+  }, []);
 
   // Debounce busca
   useEffect(() => {
@@ -129,58 +145,65 @@ const ReceitasContent: React.FC = () => {
   }, [searchParams]);
 
   const handleSearch = () => {
-    const requestParams: FiltroReceita = { 
-      ...filtros,
-      page: 1, 
-      limit: 10, 
-      sort: 'desc', 
-      sortBy: 'data' 
+    setCurrentPage(1);
+    const params = {
+      mes: filtros.mes ? parseInt(filtros.mes) : undefined,
+      ano: filtros.ano ? parseInt(filtros.ano) : undefined,
+      bancoId: filtros.bancoId,
+      categoriaId: filtros.categoriaId,
+      busca: filtros.busca,
+      page: 1,
+      limit: itemsPerPage
     };
     
-    dispatch(fetchReceitas(requestParams));
+    fetchReceitas(params);
+  };
+
+  const handlePageChange = (page: number) => {
+    setCurrentPage(page);
+    const params = {
+      mes: filtros.mes ? parseInt(filtros.mes) : undefined,
+      ano: filtros.ano ? parseInt(filtros.ano) : undefined,
+      bancoId: filtros.bancoId,
+      categoriaId: filtros.categoriaId,
+      busca: filtros.busca,
+      page: page,
+      limit: itemsPerPage
+    };
+    
+    fetchReceitas(params);
   };
 
   const handleClearFilters = () => {
+    const currentMonth = (new Date().getMonth() + 1).toString();
+    const currentYear = new Date().getFullYear().toString();
+
     setFiltros({
       busca: '',
       categoriaId: undefined,
       bancoId: undefined,
       recorrente: undefined,
-      mes: undefined,
-      ano: undefined,
+      mes: currentMonth,
+      ano: currentYear,
     });
-
-    const requestParams: FiltroReceita = {
+    
+    setCurrentPage(1);
+    fetchReceitas({
+      mes: parseInt(currentMonth),
+      ano: parseInt(currentYear),
       page: 1,
-      limit: 10,
-      sort: 'desc',
-      sortBy: 'data'
-    };
-    dispatch(fetchReceitas(requestParams));
-  };
-
-  const handlePageChange = (page: number) => {
-    const { busca, ...params } = filtros;
-
-    const requestParams: FiltroReceita = {
-      ...params,
-      page,
-      limit: 10,
-      sort: 'desc',
-      sortBy: 'data'
-    };
-
-    dispatch(fetchReceitas(requestParams));
+      limit: itemsPerPage
+    });
   };
 
   const handleEdit = (receita: Receita) => {
-    dispatch(setCurrentReceita(receita));
+    setCurrentReceita(receita);
     setModalType('edit');
     setShowModal(true);
   };
 
   const handleView = (receita: Receita) => {
-    dispatch(setCurrentReceita(receita));
+    setCurrentReceita(receita);
     setModalType('view');
     setShowModal(true);
   };
@@ -195,16 +218,8 @@ const ReceitasContent: React.FC = () => {
     
     setIsDeleting(true);
     try {
-      await dispatch(deleteReceita(receitaToDelete.id)).unwrap();
-      const params: FiltroReceita = {
-        page: 1,
-        limit: 10,
-        categoriaId: filtros.categoriaId || undefined,
-        bancoId: filtros.bancoId || undefined,
-        recorrente: typeof filtros.recorrente === 'boolean' ? filtros.recorrente : undefined,
-
-      };
-      dispatch(fetchReceitas(params));
+      await deleteReceita(receitaToDelete.id);
+      await handleSearch();
       setShowDeleteModal(false);
       setReceitaToDelete(null);
     } catch (error) {
@@ -215,9 +230,19 @@ const ReceitasContent: React.FC = () => {
   };
 
   const handleCreate = () => {
-    dispatch(clearCurrentReceita());
+    setCurrentReceita(null);
     setModalType('create');
     setShowModal(true);
+  };
+
+  const handleSaveReceita = async (data: ReceitaForm) => {
+    if (modalType === 'create') {
+      await createReceita(data);
+    } else if (modalType === 'edit' && currentReceita) {
+      await updateReceita(currentReceita._id, data);
+    }
+    await handleSearch();
+    setShowModal(false);
   };
 
   const formatCurrency = (value: number) => {
@@ -226,8 +251,6 @@ const ReceitasContent: React.FC = () => {
       currency: 'BRL',
     }).format(value);
   };
-
-  const totalReceitasFiltradas = totalFiltrado;
 
   const formatDate = (date: string) => {
     return formatDateBR(date);
@@ -242,81 +265,7 @@ const ReceitasContent: React.FC = () => {
     return tipoRecorrencia ? (labels[tipoRecorrencia] || tipoRecorrencia) : 'Recorrente';
   };
 
-  const getCategoriaNome = (receita: Receita) => {
-    const cat = receita.categoriaId;
-    if (cat && typeof cat === 'object' && 'nome' in cat) return cat.nome;
-    return '';
-  };
-
-  const renderPagination = () => {
-    if (!pagination || pagination.pages <= 1) return null;
-
-    const pages = [];
-    const maxPagesToShow = 5;
-    let startPage = Math.max(1, pagination.page - Math.floor(maxPagesToShow / 2));
-    let endPage = Math.min(pagination.pages, startPage + maxPagesToShow - 1);
-
-    if (endPage - startPage + 1 < maxPagesToShow) {
-      startPage = Math.max(1, endPage - maxPagesToShow + 1);
-    }
-
-    for (let i = startPage; i <= endPage; i++) {
-      pages.push(i);
-    }
-
-    return (
-      <Pagination className="mt-4">
-        <PaginationContent>
-          <PaginationItem>
-            <PaginationPrevious 
-              onClick={() => handlePageChange(pagination.page - 1)}
-              aria-disabled={pagination.page === 1}
-              className={pagination.page === 1 ? "pointer-events-none opacity-50" : "cursor-pointer"}
-            />
-          </PaginationItem>
-          
-          {startPage > 1 && (
-            <>
-              <PaginationItem>
-                <PaginationLink onClick={() => handlePageChange(1)}>1</PaginationLink>
-              </PaginationItem>
-              {startPage > 2 && <PaginationEllipsis />}
-            </>
-          )}
-
-          {pages.map((page) => (
-            <PaginationItem key={page}>
-              <PaginationLink
-                isActive={page === pagination.page}
-                onClick={() => handlePageChange(page)}
-              >
-                {page}
-              </PaginationLink>
-            </PaginationItem>
-          ))}
-
-          {endPage < pagination.pages && (
-            <>
-              {endPage < pagination.pages - 1 && <PaginationEllipsis />}
-              <PaginationItem>
-                <PaginationLink onClick={() => handlePageChange(pagination.pages)}>
-                  {pagination.pages}
-                </PaginationLink>
-              </PaginationItem>
-            </>
-          )}
-
-          <PaginationItem>
-            <PaginationNext 
-              onClick={() => handlePageChange(pagination.page + 1)}
-              aria-disabled={pagination.page === pagination.pages}
-              className={pagination.page === pagination.pages ? "pointer-events-none opacity-50" : "cursor-pointer"}
-            />
-          </PaginationItem>
-        </PaginationContent>
-      </Pagination>
-    );
-  };
+  const totalPages = Math.ceil(totalReceitas / itemsPerPage);
 
   return (
     <div className="space-y-6">
@@ -527,118 +476,174 @@ const ReceitasContent: React.FC = () => {
                     <TableHeader>
                       <TableRow>
                         <TableHead>Descrição</TableHead>
-                      <TableHead>Categoria</TableHead>
-                      <TableHead>Valor</TableHead>
-                      <TableHead>Data</TableHead>
-                      <TableHead>Recorrência</TableHead>
-                      <TableHead className="text-right">Ações</TableHead>
-                    </TableRow>
-                  </TableHeader>
-                  <TableBody>
-                    {receitas.map((receita) => {
-                      const categoria = typeof receita.categoriaId === 'object'
-                        ? (receita.categoriaId as Categoria)
-                        : categorias.find((c) => c._id === receita.categoriaId);
-                      
-                      const categoriaNome = categoria?.nome;
-                      const categoriaCor = categoria?.cor || '#22c55e';
-                      const categoriaIcone = categoria?.icone || 'tag';
-
-                      return (
-                        <TableRow key={receita._id} className="group hover:bg-muted/30 transition-colors">
-                        <TableCell>
-                          <div className="font-medium text-foreground">{receita.descricao}</div>
-                          {receita.observacoes && (
-                            <div className="text-xs text-muted-foreground truncate max-w-[200px]">
-                              {receita.observacoes}
-                            </div>
-                          )}
-                        </TableCell>
-                        <TableCell>
-                          <div className="flex items-center gap-2">
-                            <div 
-                              className="w-6 h-6 rounded-full flex items-center justify-center text-white flex-shrink-0"
-                              style={{ backgroundColor: categoriaCor }}
-                            >
-                              {renderCategoryIcon(categoriaIcone, "h-3.5 w-3.5")}
-                            </div>
-                            <Badge variant="secondary" className="bg-success/10 text-success hover:bg-success/20 border-transparent font-medium">
-                              {categoriaNome || '—'}
-                            </Badge>
-                          </div>
-                        </TableCell>
-                        <TableCell className="font-semibold text-success">
-                          {formatCurrency(receita.valor)}
-                        </TableCell>
-                        <TableCell>
-                          <div className="flex items-center text-sm text-muted-foreground">
-                            <CalendarIcon className="h-3.5 w-3.5 mr-1.5" />
-                            {formatDate(receita.data)}
-                          </div>
-                        </TableCell>
-                        <TableCell>
-                          <Badge variant="outline" className="text-xs font-normal text-muted-foreground border-border/50">
-                            {getRecorrenciaText((receita as any).recorrente, (receita as any).tipoRecorrencia)}
-                          </Badge>
-                        </TableCell>
-                        <TableCell className="text-right">
-                          <div className="flex justify-end gap-1">
-                            <Button variant="ghost" size="icon" onClick={() => handleView(receita)} title="Visualizar" className="h-8 w-8 text-muted-foreground hover:text-foreground hover:bg-muted">
-                              <Eye className="h-4 w-4" />
-                            </Button>
-                            <Button variant="ghost" size="icon" onClick={() => handleEdit(receita)} title="Editar" className="h-8 w-8 text-muted-foreground hover:text-foreground hover:bg-muted">
-                              <Edit className="h-4 w-4" />
-                            </Button>
-                            {receita.comprovante && (
-                              <Button variant="ghost" size="icon" onClick={() => window.open(receita.comprovante, '_blank')} title="Comprovante" className="h-8 w-8 text-muted-foreground hover:text-success hover:bg-success/10">
-                                <Download className="h-4 w-4" />
-                              </Button>
-                            )}
-                            <Button variant="ghost" size="icon" onClick={() => handleDelete(receita)} title="Excluir" className="h-8 w-8 text-muted-foreground hover:text-destructive hover:bg-destructive/10">
-                              <Trash2 className="h-4 w-4" />
-                            </Button>
-                          </div>
-                        </TableCell>
+                        <TableHead>Categoria</TableHead>
+                        <TableHead>Valor</TableHead>
+                        <TableHead>Data</TableHead>
+                        <TableHead>Recorrência</TableHead>
+                        <TableHead className="text-right">Ações</TableHead>
                       </TableRow>
-                    );
-                  })}
-                </TableBody>
-                  <TableFooter className="bg-muted/50">
-                    <TableRow>
-                      <TableCell colSpan={2} className="font-medium text-right text-muted-foreground">
-                        Total das receitas:
-                      </TableCell>
-                      <TableCell className="font-bold text-success text-lg">
-                        {formatCurrency(totalReceitasFiltradas)}
-                      </TableCell>
-                      <TableCell colSpan={3} />
-                    </TableRow>
-                  </TableFooter>
+                    </TableHeader>
+                    <TableBody>
+                      {receitas.map((receita) => {
+                        const categoria = typeof receita.categoriaId === 'object'
+                          ? (receita.categoriaId as Categoria)
+                          : categorias.find((c) => c._id === receita.categoriaId);
+                        
+                        const categoriaNome = categoria?.nome;
+                        const categoriaCor = categoria?.cor || '#22c55e';
+                        const categoriaIcone = categoria?.icone || 'tag';
+
+                        return (
+                          <TableRow key={receita._id} className="group hover:bg-muted/30 transition-colors">
+                            <TableCell>
+                              <div className="font-medium text-foreground">{receita.descricao}</div>
+                              {receita.observacoes && (
+                                <div className="text-xs text-muted-foreground truncate max-w-[200px]">
+                                  {receita.observacoes}
+                                </div>
+                              )}
+                            </TableCell>
+                            <TableCell>
+                              <div className="flex items-center gap-2">
+                                <div 
+                                  className="w-6 h-6 rounded-full flex items-center justify-center text-white flex-shrink-0"
+                                  style={{ backgroundColor: categoriaCor }}
+                                >
+                                  {renderCategoryIcon(categoriaIcone, "h-3 w-3")}
+                                </div>
+                                <span className="text-sm">{categoriaNome}</span>
+                              </div>
+                            </TableCell>
+                            <TableCell>
+                              <div className="font-medium text-emerald-600 dark:text-emerald-500">
+                                {formatCurrency(receita.valor)}
+                              </div>
+                            </TableCell>
+                            <TableCell>
+                              <div className="flex items-center gap-2 text-muted-foreground">
+                                <CalendarIcon className="h-4 w-4" />
+                                {formatDate(receita.data)}
+                              </div>
+                            </TableCell>
+                            <TableCell>
+                              <Badge variant={receita.recorrente ? "secondary" : "outline"}>
+                                {getRecorrenciaText(receita.recorrente, receita.tipoRecorrencia)}
+                              </Badge>
+                            </TableCell>
+                            <TableCell className="text-right">
+                              <div className="flex items-center justify-end gap-2 opacity-0 group-hover:opacity-100 transition-opacity">
+                                <Button
+                                  variant="ghost"
+                                  size="icon"
+                                  onClick={() => handleView(receita)}
+                                  title="Visualizar"
+                                >
+                                  <Eye className="h-4 w-4" />
+                                </Button>
+                                <Button
+                                  variant="ghost"
+                                  size="icon"
+                                  onClick={() => handleEdit(receita)}
+                                  title="Editar"
+                                >
+                                  <Edit className="h-4 w-4" />
+                                </Button>
+                                <Button
+                                  variant="ghost"
+                                  size="icon"
+                                  className="text-destructive hover:text-destructive hover:bg-destructive/10"
+                                  onClick={() => handleDelete(receita)}
+                                  title="Excluir"
+                                >
+                                  <Trash2 className="h-4 w-4" />
+                                </Button>
+                              </div>
+                            </TableCell>
+                          </TableRow>
+                        );
+                      })}
+                    </TableBody>
                   </Table>
                 </div>
                 
-                {renderPagination()}
+                {totalPages > 1 && (
+                  <div className="mt-4 flex justify-center">
+                    <Pagination>
+                      <PaginationContent>
+                        <PaginationItem>
+                          <PaginationPrevious 
+                            onClick={() => handlePageChange(currentPage - 1)}
+                            className={currentPage === 1 ? 'pointer-events-none opacity-50' : 'cursor-pointer'}
+                          />
+                        </PaginationItem>
+                        
+                        {Array.from({ length: totalPages }, (_, i) => i + 1).map((page) => {
+                          // Logic to show limited pages if too many
+                          if (
+                            page === 1 || 
+                            page === totalPages || 
+                            (page >= currentPage - 1 && page <= currentPage + 1)
+                          ) {
+                            return (
+                              <PaginationItem key={page}>
+                                <PaginationLink
+                                  onClick={() => handlePageChange(page)}
+                                  isActive={currentPage === page}
+                                  className="cursor-pointer"
+                                >
+                                  {page}
+                                </PaginationLink>
+                              </PaginationItem>
+                            );
+                          } else if (
+                            page === currentPage - 2 || 
+                            page === currentPage + 2
+                          ) {
+                            return (
+                              <PaginationItem key={page}>
+                                <PaginationEllipsis />
+                              </PaginationItem>
+                            );
+                          }
+                          return null;
+                        })}
+
+                        <PaginationItem>
+                          <PaginationNext 
+                            onClick={() => handlePageChange(currentPage + 1)}
+                            className={currentPage === totalPages ? 'pointer-events-none opacity-50' : 'cursor-pointer'}
+                          />
+                        </PaginationItem>
+                      </PaginationContent>
+                    </Pagination>
+                  </div>
+                )}
               </>
             )}
           </CardContent>
         </Collapsible>
       </Card>
 
-    <ReceitaModal
-      isOpen={showModal}
-      onClose={() => setShowModal(false)}
-      mode={modalType}
-    />
+      <ReceitaModal
+        isOpen={showModal}
+        onClose={() => setShowModal(false)}
+        mode={modalType}
+        initialData={currentReceita}
+        onSave={handleSaveReceita}
+        isLoading={isLoading}
+        categorias={categorias}
+        bancos={bancos}
+      />
 
-    <ConfirmDeleteModal
-      isOpen={showDeleteModal}
-      onClose={() => setShowDeleteModal(false)}
-      onConfirm={confirmDelete}
-      title="Excluir Receita"
-      itemName={receitaToDelete?.nome || ''}
-      itemType="receita"
-      isLoading={isDeleting}
-    />
-  </div>
-);
+      <ConfirmDeleteModal
+        isOpen={showDeleteModal}
+        onClose={() => setShowDeleteModal(false)}
+        onConfirm={confirmDelete}
+        title="Excluir Receita"
+        itemName={receitaToDelete?.nome || ''}
+        itemType="receita"
+        isLoading={isDeleting}
+      />
+    </div>
+  );
 };

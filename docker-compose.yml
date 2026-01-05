@@ -1,39 +1,17 @@
 version: '3.8'
 
 services:
-  api:
-    build:
-      context: .
-      dockerfile: Dockerfile.api
-    restart: always
-    environment:
-      - NODE_ENV=production
-      - PORT=3001
-      # No Coolify, configure MONGODB_URI nas variáveis de ambiente do serviço
-      - MONGODB_URI=${MONGODB_URI}
-      - JWT_SECRET=${JWT_SECRET}
-      - JWT_EXPIRES_IN=7d
-      - UPLOAD_PATH=uploads
-    # Volumes locais removidos para compatibilidade com Coolify
-    # Use S3 ou volumes persistentes configurados no painel se precisar salvar arquivos
-    networks:
-      - app-network
-    expose:
-      - "3001"
-
   web:
     build:
       context: .
-      dockerfile: Dockerfile.web
+      dockerfile: Dockerfile
     restart: always
     environment:
       - NODE_ENV=production
-      - BACKEND_URL=http://api:3001
-      - NEXT_PUBLIC_API_URL=/api
     expose:
       - "3000"
-    depends_on:
-      - api
+    ports:
+      - "3000:3000"
     networks:
       - app-network
 

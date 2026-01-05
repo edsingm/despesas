@@ -1,17 +1,7 @@
 'use client';
 
-import { useEffect, useState } from 'react';
-import { useAppDispatch, useAppSelector } from '@/store/hooks';
+import { useEffect, useState, useMemo } from 'react';
 import { useSearchParams } from 'next/navigation';
-import {
-  fetchDespesas,
-  deleteDespesa,
-  clearCurrentDespesa,
-  setCurrentDespesa
-} from '@/store/slices/despesaSlice';
-import { fetchCategoriasDespesa } from '@/store/slices/categoriaSlice';
-import { fetchBancos } from '@/store/slices/bancoSlice';
-import { fetchCartoes } from '@/store/slices/cartaoSlice';
 import {
   Collapsible,
   CollapsibleContent,
@@ -37,7 +27,7 @@ import ParcelasManager from '@/components/ParcelasManager';
 import DespesaModal from '@/components/modals/DespesaModal';
 import ConfirmDeleteModal from '@/components/modals/ConfirmDeleteModal';
 import NoData from '@/components/NoData';
-import { FiltroDespesa, Categoria, Banco, Cartao, Despesa } from '@/types';
+import { FiltroDespesa, Categoria, Banco, Cartao, Despesa, DespesaForm } from '@/types';
 import { formatDateBR } from '@/lib/dateUtils';
 import AuthGuard from '@/components/auth/AuthGuard';
 import AppLayout from '@/components/layout/AppLayout';
@@ -79,6 +69,12 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog"
 
+// Hooks Supabase
+import { useDespesas } from '@/hooks/useDespesas';
+import { useCategorias } from '@/hooks/useCategorias';
+import { useBancos } from '@/hooks/useBancos';
+import { useCartoes } from '@/hooks/useCartoes';
+
 export default function DespesasPage() {
   return (
     <AuthGuard>
@@ -90,13 +86,35 @@ export default function DespesasPage() {
 }
 
 const DespesasContent: React.FC = () => {
-  const dispatch = useAppDispatch();
   const searchParams = useSearchParams();
-  const { despesas, isLoading, pagination, totalFiltrado } = useAppSelector((state) => state.despesa);
-  const { categoriasDespesa: categorias } = useAppSelector((state) => state.categoria);
-  const { bancos } = useAppSelector((state) => state.banco);
-  const { cartoes } = useAppSelector((state) => state.cartao);
+  
+  // Hooks Supabase
+  const { 
+    despesas, 
+    loading: isLoadingDespesas, 
+    fetchDespesas, 
+    createDespesa, 
+    updateDespesa, 
+    deleteDespesa,
+    updateParcela
+  } = useDespesas();
+  
+  const { 
+    categorias, 
+    fetchCategorias 
+  } = useCategorias();
+  
+  const { 
+    bancos, 
+    fetchBancos 
+  } = useBancos();
 
+  const {
+    cartoes,
+    fetchCartoes
+  } = useCartoes();
+
+  // Estados locais
   const [filtros, setFiltros] = useState<{
     busca: string;
     categoriaId?: string;
@@ -113,66 +131,88 @@ const DespesasContent: React.FC = () => {
     cartaoId: undefined,
     formaPagamento: undefined,
     recorrente: undefined,
-    mes: undefined,
-    ano: undefined,
+    mes: String(new Date().getMonth() + 1), // Default para mês atual
+    ano: String(new Date().getFullYear()),   // Default para ano atual
   });
+
   const [showFilters, setShowFilters] = useState(false);
   const [showModal, setShowModal] = useState(false);
   const [modalType, setModalType] = useState<'create' | 'edit' | 'view'>('create');
+  const [selectedDespesa, setSelectedDespesa] = useState<Despesa | null>(null);
   const [showParcelasModal, setShowParcelasModal] = useState(false);
   const [selectedDespesaParcelasId, setSelectedDespesaParcelasId] = useState<string | null>(null);
   const [showDeleteModal, setShowDeleteModal] = useState(false);
   const [despesaToDelete, setDespesaToDelete] = useState<{ id: string; nome: string } | null>(null);
   const [isDeleting, setIsDeleting] = useState(false);
+  
+  // Paginação Client-side
+  const [currentPage, setCurrentPage] = useState(1);
+  const itemsPerPage = 10;
 
+  // Carregar dados iniciais
   useEffect(() => {
-    dispatch(fetchDespesas({ page: 1, limit: 10 }));
-    dispatch(fetchCategoriasDespesa());
-    dispatch(fetchBancos(undefined));
-    dispatch(fetchCartoes(undefined));
-  }, [dispatch]);
+    fetchCategorias({ tipo: 'despesa', ativo: true });
+    fetchBancos();
+    fetchCartoes();
+  }, []);
 
-  // Debounce busca
+  // Buscar despesas quando filtros (exceto busca textual) mudam
   useEffect(() => {
-    const timer = setTimeout(() => {
-      handleSearch();
-    }, 500);
+    const { mes, ano, bancoId, cartaoId, categoriaId } = filtros;
+    
+    fetchDespesas({
+      mes: mes && mes !== 'all' ? parseInt(mes) : undefined,
+      ano: ano && ano !== 'all' ? parseInt(ano) : undefined,
+      bancoId: bancoId === 'all' ? undefined : bancoId,
+      cartaoId: cartaoId === 'all' ? undefined : cartaoId,
+      categoriaId: categoriaId === 'all' ? undefined : categoriaId,
+    });
+    
+    setCurrentPage(1);
+  }, [filtros.mes, filtros.ano, filtros.bancoId, filtros.cartaoId, filtros.categoriaId]);
 
-    return () => clearTimeout(timer);
-  }, [filtros.busca]);
-
+  // Ação via URL (create)
   useEffect(() => {
     if (searchParams.get('action') === 'create') {
       handleCreate();
     }
   }, [searchParams]);
 
-  const handleSearch = () => {
-    const { busca, mes, ano, ...params } = filtros;
-    
-    let dataInicio: string | undefined;
-    let dataFim: string | undefined;
-    
-    if (mes && ano) {
-      const mesNum = parseInt(mes);
-      const anoNum = parseInt(ano);
-      dataInicio = `${anoNum}-${mesNum.toString().padStart(2, '0')}-01`;
+  // Filtragem local (busca textual, forma de pagamento, recorrência)
+  const filteredDespesas = useMemo(() => {
+    return despesas.filter(despesa => {
+      // Busca textual
+      if (filtros.busca && !despesa.descricao.toLowerCase().includes(filtros.busca.toLowerCase())) {
+        return false;
+      }
       
-      const ultimoDia = new Date(anoNum, mesNum, 0).getDate();
-      dataFim = `${anoNum}-${mesNum.toString().padStart(2, '0')}-${ultimoDia}`;
-    } else if (ano) {
-      dataInicio = `${ano}-01-01`;
-      dataFim = `${ano}-12-31`;
-    }
-    
-    dispatch(fetchDespesas({ 
-      page: 1, 
-      limit: 10, 
-      ...params,
-      busca, 
-      dataInicio, 
-      dataFim 
-    }));
+      // Forma de pagamento
+      if (filtros.formaPagamento && filtros.formaPagamento !== undefined && despesa.formaPagamento !== filtros.formaPagamento) {
+        return false;
+      }
+      
+      // Recorrência
+      if (filtros.recorrente !== undefined && despesa.recorrente !== filtros.recorrente) {
+        return false;
+      }
+      
+      return true;
+    });
+  }, [despesas, filtros.busca, filtros.formaPagamento, filtros.recorrente]);
+
+  // Paginação dos dados filtrados
+  const totalItems = filteredDespesas.length;
+  const totalPages = Math.ceil(totalItems / itemsPerPage);
+  const paginatedDespesas = filteredDespesas.slice(
+    (currentPage - 1) * itemsPerPage,
+    currentPage * itemsPerPage
+  );
+
+  const totalFiltrado = filteredDespesas.reduce((acc, curr) => acc + curr.valorTotal, 0);
+
+  const handleSearch = () => {
+    // A busca textual já é reativa via useMemo, mas mantemos a função para o botão "Buscar"
+    // ou se quisermos implementar debounce no input
   };
 
   const handleClearFilters = () => {
@@ -183,42 +223,23 @@ const DespesasContent: React.FC = () => {
       cartaoId: undefined,
       formaPagamento: undefined,
       recorrente: undefined,
-      mes: undefined,
-      ano: undefined,
+      mes: String(new Date().getMonth() + 1),
+      ano: String(new Date().getFullYear()),
     });
-
-    dispatch(fetchDespesas({ page: 1, limit: 10 }));
   };
 
   const handlePageChange = (page: number) => {
-    const { busca, mes, ano, ...params } = filtros;
-    
-    let dataInicio: string | undefined;
-    let dataFim: string | undefined;
-    
-    if (mes && ano) {
-      const mesNum = parseInt(mes);
-      const anoNum = parseInt(ano);
-      dataInicio = `${anoNum}-${mesNum.toString().padStart(2, '0')}-01`;
-      
-      const ultimoDia = new Date(anoNum, mesNum, 0).getDate();
-      dataFim = `${anoNum}-${mesNum.toString().padStart(2, '0')}-${ultimoDia}`;
-    } else if (ano) {
-      dataInicio = `${ano}-01-01`;
-      dataFim = `${ano}-12-31`;
-    }
-    
-    dispatch(fetchDespesas({ page, limit: 10, ...params, busca, dataInicio, dataFim }));
+    setCurrentPage(page);
   };
 
   const handleEdit = (despesa: Despesa) => {
-    dispatch(setCurrentDespesa(despesa));
+    setSelectedDespesa(despesa);
     setModalType('edit');
     setShowModal(true);
   };
 
   const handleView = (despesa: Despesa) => {
-    dispatch(setCurrentDespesa(despesa));
+    setSelectedDespesa(despesa);
     setModalType('view');
     setShowModal(true);
   };
@@ -233,8 +254,7 @@ const DespesasContent: React.FC = () => {
     
     setIsDeleting(true);
     try {
-      await dispatch(deleteDespesa(despesaToDelete.id)).unwrap();
-      handleSearch(); // Refresh list using current filters
+      await deleteDespesa(despesaToDelete.id);
       setShowDeleteModal(false);
       setDespesaToDelete(null);
     } catch (error) {
@@ -245,12 +265,21 @@ const DespesasContent: React.FC = () => {
   };
 
   const handleCreate = () => {
-    dispatch(clearCurrentDespesa());
+    setSelectedDespesa(null);
     setModalType('create');
     setShowModal(true);
   };
 
-  const handleManageParcelas = (despesa: any) => {
+  const handleSaveDespesa = async (data: DespesaForm) => {
+    if (modalType === 'create') {
+      await createDespesa(data);
+    } else if (modalType === 'edit' && selectedDespesa) {
+      await updateDespesa(selectedDespesa._id, data);
+    }
+    setShowModal(false);
+  };
+
+  const handleManageParcelas = (despesa: Despesa) => {
     setSelectedDespesaParcelasId(despesa._id);
     setShowParcelasModal(true);
   };
@@ -261,8 +290,6 @@ const DespesasContent: React.FC = () => {
       currency: 'BRL',
     }).format(value);
   };
-
-  const totalDespesasFiltradas = totalFiltrado;
 
   const formatDate = (date: string) => {
     return formatDateBR(date);
@@ -294,13 +321,17 @@ const DespesasContent: React.FC = () => {
       : { label: 'Pendente', variant: 'destructive' as const, className: 'bg-destructive/10 text-destructive border-transparent' };
   };
 
+  const selectedDespesaParcelas = useMemo(() => {
+    return despesas.find(d => d._id === selectedDespesaParcelasId);
+  }, [despesas, selectedDespesaParcelasId]);
+
   const renderPagination = () => {
-    if (!pagination || pagination.pages <= 1) return null;
+    if (totalPages <= 1) return null;
 
     const pages = [];
     const maxPagesToShow = 5;
-    let startPage = Math.max(1, pagination.page - Math.floor(maxPagesToShow / 2));
-    let endPage = Math.min(pagination.pages, startPage + maxPagesToShow - 1);
+    let startPage = Math.max(1, currentPage - Math.floor(maxPagesToShow / 2));
+    let endPage = Math.min(totalPages, startPage + maxPagesToShow - 1);
 
     if (endPage - startPage + 1 < maxPagesToShow) {
       startPage = Math.max(1, endPage - maxPagesToShow + 1);
@@ -315,9 +346,9 @@ const DespesasContent: React.FC = () => {
         <PaginationContent>
           <PaginationItem>
             <PaginationPrevious 
-              onClick={() => handlePageChange(pagination.page - 1)}
-              aria-disabled={pagination.page === 1}
-              className={pagination.page === 1 ? "pointer-events-none opacity-50" : "cursor-pointer"}
+              onClick={() => handlePageChange(currentPage - 1)}
+              aria-disabled={currentPage === 1}
+              className={currentPage === 1 ? "pointer-events-none opacity-50" : "cursor-pointer"}
             />
           </PaginationItem>
           
@@ -333,7 +364,7 @@ const DespesasContent: React.FC = () => {
           {pages.map((page) => (
             <PaginationItem key={page}>
               <PaginationLink
-                isActive={page === pagination.page}
+                isActive={page === currentPage}
                 onClick={() => handlePageChange(page)}
               >
                 {page}
@@ -341,12 +372,12 @@ const DespesasContent: React.FC = () => {
             </PaginationItem>
           ))}
 
-          {endPage < pagination.pages && (
+          {endPage < totalPages && (
             <>
-              {endPage < pagination.pages - 1 && <PaginationEllipsis />}
+              {endPage < totalPages - 1 && <PaginationEllipsis />}
               <PaginationItem>
-                <PaginationLink onClick={() => handlePageChange(pagination.pages)}>
-                  {pagination.pages}
+                <PaginationLink onClick={() => handlePageChange(totalPages)}>
+                  {totalPages}
                 </PaginationLink>
               </PaginationItem>
             </>
@@ -354,9 +385,9 @@ const DespesasContent: React.FC = () => {
 
           <PaginationItem>
             <PaginationNext 
-              onClick={() => handlePageChange(pagination.page + 1)}
-              aria-disabled={pagination.page === pagination.pages}
-              className={pagination.page === pagination.pages ? "pointer-events-none opacity-50" : "cursor-pointer"}
+              onClick={() => handlePageChange(currentPage + 1)}
+              aria-disabled={currentPage === totalPages}
+              className={currentPage === totalPages ? "pointer-events-none opacity-50" : "cursor-pointer"}
             />
           </PaginationItem>
         </PaginationContent>
@@ -402,7 +433,6 @@ const DespesasContent: React.FC = () => {
                 placeholder="Buscar despesas..."
                 value={filtros.busca}
                 onChange={(e) => setFiltros({ ...filtros, busca: e.target.value })}
-                onKeyDown={(e) => e.key === 'Enter' && handleSearch()}
                 className="pl-10"
               />
             </div>
@@ -567,7 +597,7 @@ const DespesasContent: React.FC = () => {
                     </SelectContent>
                   </Select>
                 </div>
-
+                
                 <div className="space-y-2">
                   <Label>Ano</Label>
                   <Select
@@ -578,213 +608,204 @@ const DespesasContent: React.FC = () => {
                       <SelectValue placeholder="Ano" />
                     </SelectTrigger>
                     <SelectContent>
-                      <SelectItem value="all">Todos</SelectItem>
-                      {Array.from({ length: 10 }, (_, i) => {
-                        const year = new Date().getFullYear() - 5 + i;
-                        return (
-                          <SelectItem key={year} value={year.toString()}>
-                            {year}
-                          </SelectItem>
-                        );
-                      })}
+                      <SelectItem value="all">Todos os anos</SelectItem>
+                      {[2023, 2024, 2025, 2026, 2027, 2028].map((ano) => (
+                        <SelectItem key={ano} value={ano.toString()}>
+                          {ano}
+                        </SelectItem>
+                      ))}
                     </SelectContent>
                   </Select>
                 </div>
               </div>
             </div>
           </CollapsibleContent>
-
-          {isLoading ? (
-            <div className="flex items-center justify-center h-64">
-              <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div>
-            </div>
-          ) : despesas.length === 0 ? (
-            <NoData
-              title="Nenhuma despesa encontrada"
-              description="Não há despesas que correspondam aos filtros aplicados ou você ainda não criou nenhuma despesa."
-              icon="search"
-              actionButton={{
-                label: "Nova Despesa",
-                onClick: handleCreate
-              }}
-            />
-          ) : (
-            <>
-              <div className="rounded-md border">
-                <Table>
-                  <TableHeader>
-                    <TableRow>
-                      <TableHead>Descrição</TableHead>
-                    <TableHead>Categoria</TableHead>
-                    <TableHead>Valor</TableHead>
-                    <TableHead>Pagamento</TableHead>
-                    <TableHead>Data</TableHead>
-                    <TableHead>Status</TableHead>
-                    <TableHead className="text-right">Ações</TableHead>
-                  </TableRow>
-                </TableHeader>
-                <TableBody>
-                  {despesas.map((despesa) => {
-                    const status = getStatusPagamento(despesa);
-                    const categoria = typeof despesa.categoriaId === 'object'
-                      ? (despesa.categoriaId as Categoria)
-                      : categorias.find((c) => c._id === despesa.categoriaId);
-                    
-                    const categoriaNome = categoria?.nome;
-                    const categoriaCor = categoria?.cor || '#ef4444';
-                    const categoriaIcone = categoria?.icone || 'tag';
-
-                    const cartaoNome = despesa.cartaoId && (typeof despesa.cartaoId === 'object'
-                      ? (despesa.cartaoId as Cartao).nome
-                      : cartoes.find((c) => c._id === despesa.cartaoId)?.nome);
-                    const bancoNome = despesa.bancoId && (typeof despesa.bancoId === 'object'
-                      ? (despesa.bancoId as Banco).nome
-                      : bancos.find((b) => b._id === despesa.bancoId)?.nome);
-
-                    return (
-                      <TableRow key={despesa._id} className="group hover:bg-muted/30 transition-colors">
-                        <TableCell>
-                          <div className="font-medium text-foreground">{formatDate(despesa.data)}</div>
-                        </TableCell>
-                        <TableCell>
-                          <div className="flex flex-col">
-                            <span className="font-medium text-foreground">{despesa.descricao}</span>
-                            {despesa.observacoes && (
-                              <span className="text-xs text-muted-foreground truncate max-w-[200px]">{despesa.observacoes}</span>
-                            )}
-                          </div>
-                        </TableCell>
-                        <TableCell>
-                          <div className="flex items-center gap-2">
-                            <div 
-                              className="w-6 h-6 rounded-full flex items-center justify-center text-white flex-shrink-0"
-                              style={{ backgroundColor: categoriaCor }}
-                            >
-                              {renderCategoryIcon(categoriaIcone, "h-3.5 w-3.5")}
-                            </div>
-                            <Badge variant="secondary" className="bg-destructive/10 text-destructive hover:bg-destructive/20 border-transparent font-medium">
-                              {categoriaNome || '—'}
-                            </Badge>
-                          </div>
-                        </TableCell>
-                        <TableCell className="font-semibold text-destructive">
-                          {formatCurrency(despesa.valorTotal)}
-                          {despesa.parcelado && despesa.parcelas && (
-                            <div className="text-[10px] text-muted-foreground uppercase font-medium">
-                              {despesa.parcelas.length}x {formatCurrency(despesa.valorTotal / despesa.parcelas.length)}
-                            </div>
-                          )}
-                        </TableCell>
-                        <TableCell>
-                          <div className="flex items-center text-sm text-foreground">
-                            {despesa.formaPagamento === 'credito' ? (
-                              <CreditCard className="h-3.5 w-3.5 text-muted-foreground mr-1.5" />
-                            ) : (
-                              <DollarSign className="h-3.5 w-3.5 text-muted-foreground mr-1.5" />
-                            )}
-                            {getFormaPagamentoLabel(despesa.formaPagamento)}
-                          </div>
-                          {(cartaoNome || bancoNome) && (
-                            <div className="text-[10px] text-muted-foreground font-medium uppercase mt-0.5">
-                              {cartaoNome || bancoNome}
-                            </div>
-                          )}
-                        </TableCell>
-                        <TableCell>
-                          <div className="flex items-center text-sm text-muted-foreground">
-                            <CalendarIcon className="h-3.5 w-3.5 mr-1.5" />
-                            {formatDate(despesa.data)}
-                          </div>
-                        </TableCell>
-                        <TableCell>
-                          <Badge 
-                            variant={status.variant}
-                            className={cn(status.className, "font-medium")}
-                          >
-                            {status.label}
-                          </Badge>
-                        </TableCell>
-                        <TableCell className="text-right">
-                          <div className="flex justify-end gap-1">
-                            <Button variant="ghost" size="icon" onClick={() => handleView(despesa)} title="Visualizar" className="h-8 w-8 text-muted-foreground hover:text-foreground hover:bg-muted">
-                              <Eye className="h-4 w-4" />
-                            </Button>
-                            <Button variant="ghost" size="icon" onClick={() => handleEdit(despesa)} title="Editar" className="h-8 w-8 text-muted-foreground hover:text-foreground hover:bg-muted">
-                              <Edit className="h-4 w-4" />
-                            </Button>
-                            {despesa.parcelado && despesa.parcelas && despesa.parcelas.length > 0 && (
-                              <Button variant="ghost" size="icon" onClick={() => handleManageParcelas(despesa)} title="Gerenciar Parcelas" className="h-8 w-8 text-muted-foreground hover:text-foreground hover:bg-muted">
-                                <Settings className="h-4 w-4" />
-                              </Button>
-                            )}
-                            {despesa.comprovante && (
-                              <Button variant="ghost" size="icon" onClick={() => window.open(despesa.comprovante, '_blank')} title="Comprovante" className="h-8 w-8 text-muted-foreground hover:text-success hover:bg-success/10">
-                                <Download className="h-4 w-4" />
-                              </Button>
-                            )}
-                            <Button variant="ghost" size="icon" onClick={() => handleDelete(despesa)} title="Excluir" className="h-8 w-8 text-muted-foreground hover:text-destructive hover:bg-destructive/10">
-                              <Trash2 className="h-4 w-4" />
-                            </Button>
-                          </div>
-                        </TableCell>
-                      </TableRow>
-                    );
-                  })}
-                </TableBody>
-                <TableFooter className="bg-muted/50">
-                  <TableRow>
-                    <TableCell colSpan={2} className="font-medium text-right text-muted-foreground">
-                      Total das despesas:
-                    </TableCell>
-                    <TableCell className="font-bold text-destructive text-lg">
-                      {formatCurrency(totalDespesasFiltradas)}
-                    </TableCell>
-                    <TableCell colSpan={4} />
-                  </TableRow>
-                </TableFooter>
-                </Table>
-              </div>
-              
-              {renderPagination()}
-            </>
-          )}
         </CardContent>
         </Collapsible>
       </Card>
+
+      <div className="rounded-md border bg-card">
+        <Table>
+          <TableHeader>
+            <TableRow>
+              <TableHead>Data</TableHead>
+              <TableHead>Descrição</TableHead>
+              <TableHead>Categoria</TableHead>
+              <TableHead>Origem</TableHead>
+              <TableHead>Valor</TableHead>
+              <TableHead>Status</TableHead>
+              <TableHead className="text-right">Ações</TableHead>
+            </TableRow>
+          </TableHeader>
+          <TableBody>
+            {isLoadingDespesas ? (
+              <TableRow>
+                <TableCell colSpan={7} className="h-24 text-center">
+                  Carregando...
+                </TableCell>
+              </TableRow>
+            ) : paginatedDespesas.length === 0 ? (
+              <TableRow>
+                <TableCell colSpan={7} className="h-24 text-center">
+                  <NoData 
+                    title="Nenhuma despesa encontrada" 
+                    description="Tente ajustar os filtros ou adicione uma nova despesa."
+                  />
+                </TableCell>
+              </TableRow>
+            ) : (
+              paginatedDespesas.map((despesa) => (
+                <TableRow key={despesa._id}>
+                  <TableCell>{formatDate(despesa.data)}</TableCell>
+                  <TableCell>
+                    <div className="font-medium">{despesa.descricao}</div>
+                    {despesa.parcelado && (
+                      <Badge variant="outline" className="mt-1 text-xs">
+                        Parcelado: {despesa.numeroParcelas}x
+                      </Badge>
+                    )}
+                    {despesa.recorrente && (
+                      <Badge variant="secondary" className="mt-1 ml-1 text-xs">
+                        Recorrente: {despesa.tipoRecorrencia}
+                      </Badge>
+                    )}
+                  </TableCell>
+                  <TableCell>
+                    {typeof despesa.categoriaId !== 'string' && despesa.categoriaId && (
+                      <div className="flex items-center gap-2">
+                        <div 
+                          className="w-6 h-6 rounded-full flex items-center justify-center text-white"
+                          style={{ backgroundColor: despesa.categoriaId.cor || '#ef4444' }}
+                        >
+                          {renderCategoryIcon(despesa.categoriaId.icone, "h-3 w-3")}
+                        </div>
+                        <span>{despesa.categoriaId.nome}</span>
+                      </div>
+                    )}
+                  </TableCell>
+                  <TableCell>
+                    {despesa.formaPagamento === 'credito' ? (
+                      <div className="flex items-center gap-2">
+                        <CreditCard className="h-4 w-4 text-muted-foreground" />
+                        <span>
+                          {typeof despesa.cartaoId !== 'string' && despesa.cartaoId 
+                            ? despesa.cartaoId.nome 
+                            : 'Cartão de Crédito'}
+                        </span>
+                      </div>
+                    ) : (
+                      <div className="flex items-center gap-2">
+                        <DollarSign className="h-4 w-4 text-muted-foreground" />
+                        <span>
+                          {typeof despesa.bancoId !== 'string' && despesa.bancoId 
+                            ? despesa.bancoId.nome 
+                            : getFormaPagamentoLabel(despesa.formaPagamento)}
+                        </span>
+                      </div>
+                    )}
+                  </TableCell>
+                  <TableCell className="font-bold text-destructive">
+                    {formatCurrency(despesa.valorTotal)}
+                  </TableCell>
+                  <TableCell>
+                    {(() => {
+                      const status = getStatusPagamento(despesa);
+                      return (
+                        <Badge variant={status.variant} className={status.className}>
+                          {status.label}
+                        </Badge>
+                      );
+                    })()}
+                  </TableCell>
+                  <TableCell className="text-right">
+                    <div className="flex justify-end gap-2">
+                      {despesa.parcelado && (
+                        <Button
+                          variant="ghost"
+                          size="icon"
+                          onClick={() => handleManageParcelas(despesa)}
+                          title="Gerenciar Parcelas"
+                        >
+                          <CalendarIcon className="h-4 w-4" />
+                        </Button>
+                      )}
+                      <Button
+                        variant="ghost"
+                        size="icon"
+                        onClick={() => handleView(despesa)}
+                      >
+                        <Eye className="h-4 w-4" />
+                      </Button>
+                      <Button
+                        variant="ghost"
+                        size="icon"
+                        onClick={() => handleEdit(despesa)}
+                      >
+                        <Edit className="h-4 w-4" />
+                      </Button>
+                      <Button
+                        variant="ghost"
+                        size="icon"
+                        className="text-destructive hover:text-destructive/90"
+                        onClick={() => handleDelete(despesa)}
+                      >
+                        <Trash2 className="h-4 w-4" />
+                      </Button>
+                    </div>
+                  </TableCell>
+                </TableRow>
+              ))
+            )}
+          </TableBody>
+          <TableFooter>
+            <TableRow>
+              <TableCell colSpan={4} className="font-bold">Total</TableCell>
+              <TableCell className="font-bold text-destructive">
+                {formatCurrency(totalFiltrado)}
+              </TableCell>
+              <TableCell colSpan={2} />
+            </TableRow>
+          </TableFooter>
+        </Table>
+      </div>
+
+      {renderPagination()}
 
       <DespesaModal
         isOpen={showModal}
         onClose={() => setShowModal(false)}
         mode={modalType}
+        initialData={selectedDespesa}
+        onSave={handleSaveDespesa}
+        isLoading={isLoadingDespesas}
+        categorias={categorias}
+        bancos={bancos}
+        cartoes={cartoes}
       />
-
-      <Dialog open={showParcelasModal} onOpenChange={setShowParcelasModal}>
-        <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto">
-          <DialogHeader>
-            <DialogTitle>Gerenciar Parcelas</DialogTitle>
-          </DialogHeader>
-          {selectedDespesaParcelasId && (
-            <ParcelasManager 
-              despesaId={selectedDespesaParcelasId} 
-              onClose={() => setShowParcelasModal(false)}
-            />
-          )}
-        </DialogContent>
-      </Dialog>
 
       <ConfirmDeleteModal
         isOpen={showDeleteModal}
-        onClose={() => {
-          setShowDeleteModal(false);
-          setDespesaToDelete(null);
-        }}
+        onClose={() => setShowDeleteModal(false)}
         onConfirm={confirmDelete}
         title="Excluir Despesa"
         itemName={despesaToDelete?.nome || ''}
         itemType="despesa"
         isLoading={isDeleting}
-        warningMessage="Esta despesa será removida permanentemente do sistema."
       />
+
+      <Dialog open={showParcelasModal} onOpenChange={setShowParcelasModal}>
+        <DialogContent className="max-w-4xl max-h-[80vh] overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle>Gerenciar Parcelas</DialogTitle>
+          </DialogHeader>
+          {selectedDespesaParcelas && (
+            <ParcelasManager 
+              despesa={selectedDespesaParcelas}
+              onUpdateParcela={updateParcela}
+            />
+          )}
+        </DialogContent>
+      </Dialog>
     </div>
   );
 };

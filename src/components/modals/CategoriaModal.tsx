@@ -1,6 +1,4 @@
 import { useState, useEffect } from 'react';
-import { useAppDispatch, useAppSelector } from '@/store/hooks';
-import { createCategoria, updateCategoria, fetchCategorias } from '@/store/slices/categoriaSlice';
 import {
   Dialog,
   DialogContent,
@@ -21,22 +19,29 @@ import {
 import { Checkbox } from "@/components/ui/checkbox";
 import { Palette, Tag } from 'lucide-react';
 import { renderCategoryIcon, availableIcons, getIconLabel } from '@/lib/categoryIcons';
-import { toast } from "sonner";
 import { cn } from "@/lib/utils";
+import { Categoria, CategoriaForm } from '@/types';
 
 interface CategoriaModalProps {
   isOpen: boolean;
   onClose: () => void;
   mode: 'create' | 'edit' | 'view';
+  initialData?: Categoria | null;
+  onSave?: (data: CategoriaForm) => Promise<void>;
+  isLoading?: boolean;
 }
 
-const CategoriaModal: React.FC<CategoriaModalProps> = ({ isOpen, onClose, mode }) => {
-  const dispatch = useAppDispatch();
-  const { currentCategoria, isLoading } = useAppSelector((state) => state.categoria);
-  
-  const [formData, setFormData] = useState({
+const CategoriaModal: React.FC<CategoriaModalProps> = ({ 
+  isOpen, 
+  onClose, 
+  mode,
+  initialData,
+  onSave,
+  isLoading = false
+}) => {
+  const [formData, setFormData] = useState<CategoriaForm>({
     nome: '',
-    tipo: 'despesa' as 'receita' | 'despesa',
+    tipo: 'despesa',
     cor: '#ef4444',
     icone: 'tag',
     ativa: true,
@@ -62,13 +67,13 @@ const CategoriaModal: React.FC<CategoriaModalProps> = ({ isOpen, onClose, mode }
 
 
   useEffect(() => {
-    if (mode === 'edit' && currentCategoria) {
+    if (mode === 'edit' && initialData) {
       setFormData({
-        nome: currentCategoria.nome || '',
-        tipo: currentCategoria.tipo || 'despesa',
-        cor: currentCategoria.cor || '#ef4444',
-        icone: currentCategoria.icone || 'tag',
-        ativa: currentCategoria.ativa !== undefined ? currentCategoria.ativa : true,
+        nome: initialData.nome || '',
+        tipo: initialData.tipo || 'despesa',
+        cor: initialData.cor || '#ef4444',
+        icone: initialData.icone || 'tag',
+        ativa: initialData.ativa !== undefined ? initialData.ativa : true,
       });
     } else if (mode === 'create') {
       setFormData({
@@ -80,27 +85,13 @@ const CategoriaModal: React.FC<CategoriaModalProps> = ({ isOpen, onClose, mode }
       });
     }
     setErrors({});
-  }, [mode, currentCategoria, isOpen]);
+  }, [mode, initialData, isOpen]);
 
   const validateForm = () => {
     const newErrors: Record<string, string> = {};
 
     if (!formData.nome.trim()) {
       newErrors.nome = 'Nome é obrigatório';
-    } else if (formData.nome.trim().length < 2) {
-      newErrors.nome = 'Nome deve ter pelo menos 2 caracteres';
-    }
-
-    if (!formData.tipo) {
-      newErrors.tipo = 'Tipo é obrigatório';
-    }
-
-    if (!formData.cor) {
-      newErrors.cor = 'Cor é obrigatória';
-    }
-
-    if (!formData.icone) {
-      newErrors.icone = 'Ícone é obrigatório';
     }
 
     setErrors(newErrors);
@@ -110,25 +101,9 @@ const CategoriaModal: React.FC<CategoriaModalProps> = ({ isOpen, onClose, mode }
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     
-    if (!validateForm()) return;
-
-    try {
-      if (mode === 'create') {
-        await dispatch(createCategoria(formData)).unwrap();
-        toast.success("Categoria criada com sucesso!");
-      } else if (mode === 'edit' && currentCategoria) {
-        await dispatch(updateCategoria({ 
-          id: currentCategoria._id, 
-          data: formData 
-        })).unwrap();
-        toast.success("Categoria atualizada com sucesso!");
-      }
-      
-      dispatch(fetchCategorias({}));
+    if (validateForm() && onSave) {
+      await onSave(formData);
       onClose();
-    } catch (error) {
-      console.error('Erro ao salvar categoria:', error);
-      toast.error("Erro ao salvar categoria");
     }
   };
 

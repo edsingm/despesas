@@ -1,20 +1,14 @@
 'use client';
 
 import React, { useEffect, useState } from 'react';
-import { useAppDispatch, useAppSelector } from '@/store/hooks';
-import { 
-  fetchCategorias, 
-  deleteCategoria, 
-  setCurrentCategoria, 
-  clearCurrentCategoria 
-} from '@/store/slices/categoriaSlice';
+import { useCategorias } from '@/hooks/useCategorias';
 import { Plus, Search, Pencil, Trash2, FolderOpen } from 'lucide-react';
 import { renderCategoryIcon } from '@/lib/categoryIcons';
 import AuthGuard from '@/components/auth/AuthGuard';
 import AppLayout from '@/components/layout/AppLayout';
 import CategoriaModal from '@/components/modals/CategoriaModal';
 import ConfirmDeleteModal from '@/components/modals/ConfirmDeleteModal';
-import { Categoria } from '@/types';
+import { Categoria, CategoriaForm } from '@/types';
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Card, CardContent } from "@/components/ui/card";
@@ -32,51 +26,62 @@ import {
 } from "@/components/ui/pagination";
 
 function CategoriasContent() {
-  const dispatch = useAppDispatch();
-  const { categorias, isLoading, pagination } = useAppSelector((state) => state.categoria);
+  const { 
+    categorias, 
+    loading, 
+    currentCategoria, 
+    setCurrentCategoria, 
+    fetchCategorias, 
+    createCategoria, 
+    updateCategoria, 
+    deleteCategoria 
+  } = useCategorias();
   
   const [filtroTipo, setFiltroTipo] = useState<'todos' | 'receita' | 'despesa'>('todos');
   const [searchTerm, setSearchTerm] = useState('');
-  const [debouncedSearch, setDebouncedSearch] = useState('');
+  const [currentPage, setCurrentPage] = useState(1);
+  const itemsPerPage = 12;
+
   const [showModal, setShowModal] = useState(false);
   const [modalType, setModalType] = useState<'create' | 'edit'>('create');
   const [showDeleteModal, setShowDeleteModal] = useState(false);
   const [categoriaToDelete, setCategoriaToDelete] = useState<Categoria | null>(null);
 
-  // Debounce search term
   useEffect(() => {
-    const timer = setTimeout(() => {
-      setDebouncedSearch(searchTerm);
-    }, 500);
-    return () => clearTimeout(timer);
-  }, [searchTerm]);
+    fetchCategorias();
+  }, [fetchCategorias]);
 
+  // Reset page when filter changes
   useEffect(() => {
-    dispatch(fetchCategorias({ 
-      tipo: filtroTipo === 'todos' ? undefined : filtroTipo,
-      busca: debouncedSearch || undefined,
-      page: 1,
-      limit: 12 // Grid de 4 colunas fica bom com múltiplos de 4
-    }));
-  }, [dispatch, filtroTipo, debouncedSearch]);
+    setCurrentPage(1);
+  }, [filtroTipo, searchTerm]);
+
+  // Client-side filtering
+  const filteredCategorias = categorias.filter(cat => {
+    const matchesTipo = filtroTipo === 'todos' ? true : cat.tipo === filtroTipo;
+    const matchesSearch = searchTerm === '' ? true : cat.nome.toLowerCase().includes(searchTerm.toLowerCase());
+    return matchesTipo && matchesSearch;
+  });
+
+  // Client-side pagination
+  const totalPages = Math.ceil(filteredCategorias.length / itemsPerPage);
+  const paginatedCategorias = filteredCategorias.slice(
+    (currentPage - 1) * itemsPerPage,
+    currentPage * itemsPerPage
+  );
 
   const handlePageChange = (page: number) => {
-    dispatch(fetchCategorias({ 
-      tipo: filtroTipo === 'todos' ? undefined : filtroTipo,
-      busca: debouncedSearch || undefined,
-      page,
-      limit: 12
-    }));
+    setCurrentPage(page);
   };
 
   const handleCreate = () => {
-    dispatch(clearCurrentCategoria());
+    setCurrentCategoria(null);
     setModalType('create');
     setShowModal(true);
   };
 
   const handleEdit = (categoria: Categoria) => {
-    dispatch(setCurrentCategoria(categoria));
+    setCurrentCategoria(categoria);
     setModalType('edit');
     setShowModal(true);
   };
@@ -88,26 +93,46 @@ function CategoriasContent() {
 
   const confirmDelete = async () => {
     if (categoriaToDelete) {
-      await dispatch(deleteCategoria(categoriaToDelete._id));
+      await deleteCategoria(categoriaToDelete._id);
       setShowDeleteModal(false);
       setCategoriaToDelete(null);
     }
   };
 
+  const handleSave = async (data: CategoriaForm) => {
+    if (modalType === 'create') {
+      await createCategoria(data);
+    } else if (modalType === 'edit' && currentCategoria) {
+      await updateCategoria(currentCategoria._id, data);
+    }
+  };
+
   const renderPagination = () => {
-    if (!pagination || pagination.pages <= 1) return null;
+    if (totalPages <= 1) return null;
 
     const pages = [];
-    const maxPagesToShow = 5;
-    let startPage = Math.max(1, pagination.page - Math.floor(maxPagesToShow / 2));
-    let endPage = Math.min(pagination.pages, startPage + maxPagesToShow - 1);
+    // Sempre mostra a primeira página
+    pages.push(1);
 
-    if (endPage - startPage + 1 < maxPagesToShow) {
-      startPage = Math.max(1, endPage - maxPagesToShow + 1);
+    // Lógica para mostrar ... e páginas ao redor da atual
+    if (currentPage > 3) {
+      pages.push('ellipsis-start');
     }
+
+    const startPage = Math.max(2, currentPage - 1);
+    const endPage = Math.min(totalPages - 1, currentPage + 1);
 
     for (let i = startPage; i <= endPage; i++) {
       pages.push(i);
+    }
+
+    if (currentPage < totalPages - 2) {
+      pages.push('ellipsis-end');
+    }
+
+    // Sempre mostra a última página se houver mais de uma
+    if (totalPages > 1) {
+      pages.push(totalPages);
     }
 
     return (
@@ -115,47 +140,31 @@ function CategoriasContent() {
         <PaginationContent>
           <PaginationItem>
             <PaginationPrevious 
-              onClick={() => handlePageChange(pagination.page - 1)}
-              className={pagination.page === 1 ? "pointer-events-none opacity-50" : "cursor-pointer"}
+              onClick={() => handlePageChange(currentPage - 1)}
+              className={currentPage === 1 ? "pointer-events-none opacity-50" : "cursor-pointer"}
             />
           </PaginationItem>
           
-          {startPage > 1 && (
-            <>
-              <PaginationItem>
-                <PaginationLink onClick={() => handlePageChange(1)}>1</PaginationLink>
-              </PaginationItem>
-              {startPage > 2 && <PaginationEllipsis />}
-            </>
-          )}
-
-          {pages.map((page) => (
-            <PaginationItem key={page}>
-              <PaginationLink
-                isActive={page === pagination.page}
-                onClick={() => handlePageChange(page)}
-                className="cursor-pointer"
-              >
-                {page}
-              </PaginationLink>
+          {pages.map((page, index) => (
+            <PaginationItem key={index}>
+              {page === 'ellipsis-start' || page === 'ellipsis-end' ? (
+                <PaginationEllipsis />
+              ) : (
+                <PaginationLink 
+                  isActive={page === currentPage}
+                  onClick={() => handlePageChange(page as number)}
+                  className="cursor-pointer"
+                >
+                  {page}
+                </PaginationLink>
+              )}
             </PaginationItem>
           ))}
 
-          {endPage < pagination.pages && (
-            <>
-              {endPage < pagination.pages - 1 && <PaginationEllipsis />}
-              <PaginationItem>
-                <PaginationLink onClick={() => handlePageChange(pagination.pages)}>
-                  {pagination.pages}
-                </PaginationLink>
-              </PaginationItem>
-            </>
-          )}
-
           <PaginationItem>
             <PaginationNext 
-              onClick={() => handlePageChange(pagination.page + 1)}
-              className={pagination.page === pagination.pages ? "pointer-events-none opacity-50" : "cursor-pointer"}
+              onClick={() => handlePageChange(currentPage + 1)}
+              className={currentPage === totalPages ? "pointer-events-none opacity-50" : "cursor-pointer"}
             />
           </PaginationItem>
         </PaginationContent>
@@ -196,14 +205,34 @@ function CategoriasContent() {
         </div>
       </div>
 
-      {isLoading ? (
+      {loading ? (
         <div className="flex justify-center items-center py-12">
           <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div>
         </div>
+      ) : filteredCategorias.length === 0 ? (
+        <Card className="text-center py-16 border shadow-sm bg-muted/10">
+          <CardContent>
+            <div className="flex justify-center mb-4">
+              <div className="p-4 rounded-full bg-muted">
+                <FolderOpen className="h-12 w-12 text-muted-foreground/30" />
+              </div>
+            </div>
+            <h3 className="text-lg font-semibold text-foreground">Nenhuma categoria encontrada</h3>
+            <p className="mt-2 text-sm text-muted-foreground max-w-[300px] mx-auto">
+              Comece criando categorias para organizar suas receitas e despesas.
+            </p>
+            <div className="mt-8">
+              <Button onClick={handleCreate} variant="outline" className="shadow-sm">
+                <Plus className="h-4 w-4 mr-2" />
+                Nova Categoria
+              </Button>
+            </div>
+          </CardContent>
+        </Card>
       ) : (
         <>
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
-            {categorias.map((categoria: Categoria) => (
+            {paginatedCategorias.map((categoria: Categoria) => (
               <Card key={categoria._id} className="group border shadow-sm transition-all hover:shadow-md hover:border-primary/20 bg-card overflow-hidden">
                 <CardContent className="p-0">
                   <div className="p-5 flex items-center justify-between">
@@ -270,6 +299,9 @@ function CategoriasContent() {
           isOpen={showModal}
           onClose={() => setShowModal(false)}
           mode={modalType}
+          initialData={currentCategoria}
+          onSave={handleSave}
+          isLoading={loading}
         />
       )}
 
@@ -280,7 +312,7 @@ function CategoriasContent() {
         title="Excluir Categoria"
         itemName={categoriaToDelete?.nome || ''}
         itemType="categoria"
-        isLoading={isLoading}
+        isLoading={loading}
       />
     </div>
   );

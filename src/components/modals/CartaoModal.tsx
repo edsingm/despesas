@@ -1,6 +1,4 @@
 import { useState, useEffect } from 'react';
-import { useAppDispatch, useAppSelector } from '@/store/hooks';
-import { createCartao, updateCartao, fetchCartoes } from '@/store/slices/cartaoSlice';
 import { CreditCard, Calendar } from 'lucide-react';
 import {
   Dialog,
@@ -21,20 +19,27 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { toast } from "sonner";
+import { Cartao, CartaoForm } from '@/types';
 import { cn, formatCurrency } from "@/lib/utils";
 
 interface CartaoModalProps {
   isOpen: boolean;
   onClose: () => void;
   mode: 'create' | 'edit' | 'view';
+  initialData?: Cartao | null;
+  onSave?: (data: CartaoForm) => Promise<void>;
+  isLoading?: boolean;
 }
 
-const CartaoModal: React.FC<CartaoModalProps> = ({ isOpen, onClose, mode }) => {
-  const dispatch = useAppDispatch();
-  const { currentCartao, isLoading } = useAppSelector((state) => state.cartao);
-  
-  const [formData, setFormData] = useState({
+const CartaoModal: React.FC<CartaoModalProps> = ({ 
+  isOpen, 
+  onClose, 
+  mode,
+  initialData,
+  onSave,
+  isLoading = false
+}) => {
+  const [formData, setFormData] = useState<CartaoForm>({
     nome: '',
     bandeira: 'visa',
     limite: 0,
@@ -46,14 +51,14 @@ const CartaoModal: React.FC<CartaoModalProps> = ({ isOpen, onClose, mode }) => {
   const [errors, setErrors] = useState<Record<string, string>>({});
 
   useEffect(() => {
-    if (mode === 'edit' && currentCartao) {
+    if (mode === 'edit' && initialData) {
       setFormData({
-        nome: currentCartao.nome || '',
-        bandeira: currentCartao.bandeira || 'visa',
-        limite: currentCartao.limite || 0,
-        diaVencimento: currentCartao.diaVencimento || 1,
-        diaFechamento: currentCartao.diaFechamento || 1,
-        ativo: currentCartao.ativo !== undefined ? currentCartao.ativo : true,
+        nome: initialData.nome || '',
+        bandeira: initialData.bandeira || 'visa',
+        limite: initialData.limite || 0,
+        diaVencimento: initialData.diaVencimento || 1,
+        diaFechamento: initialData.diaFechamento || 1,
+        ativo: initialData.ativo !== undefined ? initialData.ativo : true,
       });
     } else if (mode === 'create') {
       setFormData({
@@ -64,38 +69,51 @@ const CartaoModal: React.FC<CartaoModalProps> = ({ isOpen, onClose, mode }) => {
         diaFechamento: 1,
         ativo: true,
       });
+    } else if (mode === 'view' && initialData) {
+      setFormData({
+        nome: initialData.nome || '',
+        bandeira: initialData.bandeira || 'visa',
+        limite: initialData.limite || 0,
+        diaVencimento: initialData.diaVencimento || 1,
+        diaFechamento: initialData.diaFechamento || 1,
+        ativo: initialData.ativo !== undefined ? initialData.ativo : true,
+      });
     }
     setErrors({});
-  }, [mode, currentCartao, isOpen]);
+  }, [mode, initialData, isOpen]);
+
+  const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const { name, value } = e.target;
+    setFormData((prev) => ({ ...prev, [name]: value }));
+    if (errors[name]) {
+      setErrors((prev) => {
+        const newErrors = { ...prev };
+        delete newErrors[name];
+        return newErrors;
+      });
+    }
+  };
+
+  const handleValueChange = (value: number) => {
+    setFormData((prev) => ({ ...prev, limite: value }));
+    if (errors.limite) {
+      setErrors((prev) => {
+        const newErrors = { ...prev };
+        delete newErrors.limite;
+        return newErrors;
+      });
+    }
+  };
 
   const validateForm = () => {
     const newErrors: Record<string, string> = {};
 
     if (!formData.nome.trim()) {
       newErrors.nome = 'Nome é obrigatório';
-    } else if (formData.nome.trim().length < 2) {
-      newErrors.nome = 'Nome deve ter pelo menos 2 caracteres';
-    }
-
-    if (!formData.bandeira) {
-      newErrors.bandeira = 'Bandeira é obrigatória';
     }
 
     if (!formData.limite || formData.limite <= 0) {
       newErrors.limite = 'Limite deve ser maior que zero';
-    }
-
-    if (!formData.diaVencimento || formData.diaVencimento < 1 || formData.diaVencimento > 31) {
-      newErrors.diaVencimento = 'Dia de vencimento deve estar entre 1 e 31';
-    }
-
-    if (!formData.diaFechamento || formData.diaFechamento < 1 || formData.diaFechamento > 31) {
-      newErrors.diaFechamento = 'Dia de fechamento deve estar entre 1 e 31';
-    }
-
-    if (formData.diaVencimento === formData.diaFechamento) {
-      newErrors.diaVencimento = 'Dia de vencimento deve ser diferente do dia de fechamento';
-      newErrors.diaFechamento = 'Dia de fechamento deve ser diferente do dia de vencimento';
     }
 
     setErrors(newErrors);
@@ -105,42 +123,9 @@ const CartaoModal: React.FC<CartaoModalProps> = ({ isOpen, onClose, mode }) => {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     
-    if (!validateForm()) return;
-
-    try {
-      if (mode === 'create') {
-        await dispatch(createCartao(formData)).unwrap();
-        toast.success("Cartão criado com sucesso!");
-      } else if (mode === 'edit' && currentCartao) {
-        await dispatch(updateCartao({ 
-          id: currentCartao._id, 
-          data: formData 
-        })).unwrap();
-        toast.success("Cartão atualizado com sucesso!");
-      }
-      
-      dispatch(fetchCartoes(undefined));
+    if (validateForm() && onSave) {
+      await onSave(formData);
       onClose();
-    } catch (error: any) {
-      console.error('Erro ao salvar cartão:', error);
-      toast.error("Erro ao salvar cartão. Tente novamente.");
-    }
-  };
-
-  const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const { name, value } = e.target;
-    
-    setFormData(prev => ({ ...prev, [name]: value }));
-    
-    if (errors[name]) {
-      setErrors(prev => ({ ...prev, [name]: '' }));
-    }
-  };
-
-  const handleValueChange = (value: number) => {
-    setFormData(prev => ({ ...prev, limite: value }));
-    if (errors.limite) {
-      setErrors(prev => ({ ...prev, limite: '' }));
     }
   };
 

@@ -1,20 +1,13 @@
 'use client';
 
 import { useEffect, useState } from 'react';
-import { useAppDispatch, useAppSelector } from '@/store/hooks';
-import { 
-  fetchResumoGeral,
-  fetchGraficoReceitasDespesas,
-  fetchGraficoDespesasPorCategoria,
-  fetchGraficoReceitasPorCategoria,
-  fetchEvolucaoPatrimonial
-} from '@/store/slices/dashboardSlice';
 import AuthGuard from '@/components/auth/AuthGuard';
 import AppLayout from '@/components/layout/AppLayout';
 import { Skeleton } from "@/components/ui/skeleton";
 import { DashboardHeader } from '@/components/dashboard/DashboardHeader';
 import { SummaryCards } from '@/components/dashboard/SummaryCards';
 import { DashboardCharts } from '@/components/dashboard/DashboardCharts';
+import { useDashboardData } from '@/hooks/useDashboardData';
 
 const DashboardSkeleton = () => (
   <div className="space-y-8">
@@ -38,27 +31,22 @@ const DashboardSkeleton = () => (
 );
 
 export default function DashboardPage() {
-  const dispatch = useAppDispatch();
   const { 
     resumoGeral, 
     graficoReceitasDespesas, 
     graficoDespesasPorCategoria, 
     graficoReceitasPorCategoria,
     evolucaoPatrimonial,
-    isLoading
-  } = useAppSelector((state) => state.dashboard);
+    isLoading,
+    fetchData
+  } = useDashboardData();
 
   const [filtroMes, setFiltroMes] = useState(String(new Date().getMonth() + 1));
   const [filtroAno, setFiltroAno] = useState(String(new Date().getFullYear()));
 
   useEffect(() => {
-    const params = { mes: Number(filtroMes), ano: Number(filtroAno) };
-    dispatch(fetchResumoGeral(params));
-    dispatch(fetchGraficoReceitasDespesas(params));
-    dispatch(fetchGraficoDespesasPorCategoria(params));
-    dispatch(fetchGraficoReceitasPorCategoria(params));
-    dispatch(fetchEvolucaoPatrimonial({ meses: 6 }));
-  }, [dispatch, filtroMes, filtroAno]);
+    fetchData(Number(filtroMes), Number(filtroAno));
+  }, [fetchData, filtroMes, filtroAno]);
 
   return (
     <AuthGuard>
