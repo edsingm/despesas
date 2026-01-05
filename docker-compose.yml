@@ -25,9 +25,13 @@ services:
     build:
       context: .
       dockerfile: Dockerfile.web
+      args:
+        # Passa a URL do backend durante o build time para o Next.js
+        - BACKEND_URL=http://api:3001
     restart: always
     environment:
       - NODE_ENV=production
+      # Runtime variable
       - BACKEND_URL=http://api:3001
       - NEXT_PUBLIC_API_URL=/api
     expose:
