@@ -1,38 +1,56 @@
+version: '3.8'
+
 services:
-  app:
+  mongo:
+    image: mongo:6
+    container_name: sistema-despesas-mongo
+    restart: always
+    volumes:
+      - mongo_data:/data/db
+    networks:
+      - app-network
+
+  api:
     build:
       context: .
-      dockerfile: Dockerfile
-    container_name: sd-app
+      dockerfile: Dockerfile.api
+    container_name: sistema-despesas-api
     restart: always
-    ports:
-      - "3000:3000"
     environment:
       - NODE_ENV=production
-      - MONGODB_URI=mongodb://mongodb:27017/sistema_financas
-      - PORT=3000
-      - JWT_SECRET=${JWT_SECRET:-your_super_secret_jwt_key_here}
-    depends_on:
-      - mongodb
+      - PORT=3001
+      - MONGODB_URI=mongodb://mongo:27017/sistema-financas
+      - JWT_SECRET=${JWT_SECRET:-change_me_in_production_secret_key}
+      - JWT_EXPIRES_IN=7d
+      - UPLOAD_PATH=uploads
     volumes:
       - ./uploads:/app/uploads
+    depends_on:
+      - mongo
     networks:
-      - sd-network
+      - app-network
+    expose:
+      - "3001"
 
-  mongodb:
-    image: mongo:latest
-    container_name: sd-mongodb
+  web:
+    build:
+      context: .
+      dockerfile: Dockerfile.web
+    container_name: sistema-despesas-web
     restart: always
+    environment:
+      - NODE_ENV=production
+      - BACKEND_URL=http://api:3001
     ports:
-      - "27017:27017"
-    volumes:
-      - mongodb_data:/data/db
+      - "3000:3000"
+    depends_on:
+      - api
     networks:
-      - sd-network
+      - app-network
 
 networks:
-  sd-network:
+  app-network:
     driver: bridge
 
 volumes:
-  mongodb_data:
+  mongo_data:

@@ -7,12 +7,16 @@ const nextConfig = {
     // serverActions: true, // Enabled by default in newer versions
   },
   async rewrites() {
+    const backendUrl = process.env.BACKEND_URL || 'http://localhost:3001';
+
     return [
       {
         source: '/api/:path*',
-        destination: process.env.BACKEND_URL 
-          ? `${process.env.BACKEND_URL}/api/:path*`
-          : 'http://localhost:3001/api/:path*',
+        destination: `${backendUrl}/api/:path*`,
+      },
+      {
+        source: '/uploads/:path*',
+        destination: `${backendUrl}/uploads/:path*`,
       },
     ];
   },
