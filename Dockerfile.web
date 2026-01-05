@@ -17,10 +17,6 @@ WORKDIR /app
 COPY --from=deps /app/node_modules ./node_modules
 COPY . .
 
-# Recebe ARG do docker-compose
-ARG BACKEND_URL
-ENV BACKEND_URL=$BACKEND_URL
-
 ENV NODE_ENV=production
 ENV NEXT_TELEMETRY_DISABLED=1
 
