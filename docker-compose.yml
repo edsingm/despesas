@@ -1,14 +1,6 @@
 version: '3.8'
 
 services:
-  mongo:
-    image: mongo:6
-    restart: always
-    volumes:
-      - mongo_data:/data/db
-    networks:
-      - app-network
-
   api:
     build:
       context: .
@@ -17,14 +9,13 @@ services:
     environment:
       - NODE_ENV=production
       - PORT=3001
-      - MONGODB_URI=mongodb://mongo:27017/sistema-financas
-      - JWT_SECRET=${JWT_SECRET:-change_me_in_production_secret_key}
+      # No Coolify, configure MONGODB_URI nas variáveis de ambiente do serviço
+      - MONGODB_URI=${MONGODB_URI}
+      - JWT_SECRET=${JWT_SECRET}
       - JWT_EXPIRES_IN=7d
       - UPLOAD_PATH=uploads
-    volumes:
-      - ./uploads:/app/uploads
-    depends_on:
-      - mongo
+    # Volumes locais removidos para compatibilidade com Coolify
+    # Use S3 ou volumes persistentes configurados no painel se precisar salvar arquivos
     networks:
       - app-network
     expose:
@@ -38,7 +29,6 @@ services:
     environment:
       - NODE_ENV=production
       - BACKEND_URL=http://api:3001
-      # Garante que o cliente bata na rota relativa /api que o Next.js fará proxy
       - NEXT_PUBLIC_API_URL=/api
     expose:
       - "3000"
@@ -50,6 +40,3 @@ services:
 networks:
   app-network:
     driver: bridge
-
-volumes:
-  mongo_data:
