@@ -7,7 +7,10 @@ const nextConfig = {
     // serverActions: true, // Enabled by default in newer versions
   },
   async rewrites() {
+    // Em produção via Docker, BACKEND_URL deve ser 'http://api:3001'
     const backendUrl = process.env.BACKEND_URL || 'http://localhost:3001';
+    
+    console.log('Using backend URL for rewrites:', backendUrl);
 
     return [
       {
