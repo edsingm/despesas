@@ -3,7 +3,6 @@ version: '3.8'
 services:
   mongo:
     image: mongo:6
-    container_name: sistema-despesas-mongo
     restart: always
     volumes:
       - mongo_data:/data/db
@@ -14,7 +13,6 @@ services:
     build:
       context: .
       dockerfile: Dockerfile.api
-    container_name: sistema-despesas-api
     restart: always
     environment:
       - NODE_ENV=production
@@ -36,11 +34,12 @@ services:
     build:
       context: .
       dockerfile: Dockerfile.web
-    container_name: sistema-despesas-web
     restart: always
     environment:
       - NODE_ENV=production
       - BACKEND_URL=http://api:3001
+      # Garante que o cliente bata na rota relativa /api que o Next.js fará proxy
+      - NEXT_PUBLIC_API_URL=/api
     ports:
       - "3000:3000"
     depends_on:
