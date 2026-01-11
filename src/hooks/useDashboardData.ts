@@ -125,8 +125,13 @@ export const useDashboardData = () => {
     }
   }, []);
 
+  const refresh = useCallback(async (mes: number, ano: number) => {
+    await fetchData(mes, ano);
+  }, [fetchData]);
+
   return {
     ...data,
-    fetchData
+    fetchData,
+    refresh
   };
 };

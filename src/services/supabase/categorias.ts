@@ -42,6 +42,7 @@ export const categoriaService = {
 
   createCategoria: async (categoriaData: CategoriaForm, userId: string) => {
     const novaCategoria: CategoriaInsert = {
+      id: crypto.randomUUID(),
       user_id: userId,
       nome: categoriaData.nome,
       tipo: categoriaData.tipo,

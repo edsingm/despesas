@@ -5,6 +5,7 @@ import {
   DialogContent,
   DialogHeader,
   DialogTitle,
+  DialogDescription,
   DialogFooter,
 } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
@@ -164,6 +165,11 @@ const CartaoModal: React.FC<CartaoModalProps> = ({
       <DialogContent className="sm:max-w-[600px]">
         <DialogHeader>
           <DialogTitle>{getTitle()}</DialogTitle>
+          <DialogDescription>
+            {mode === 'view' 
+              ? 'Detalhes do cartão de crédito cadastrado.' 
+              : 'Informe os dados do seu cartão para controle de faturas e limites.'}
+          </DialogDescription>
         </DialogHeader>
         
         <form onSubmit={handleSubmit} className="space-y-4 py-4">

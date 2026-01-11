@@ -10,26 +10,27 @@ export const useReceitas = () => {
   const [totalReceitas, setTotalReceitas] = useState(0);
   const [loading, setLoading] = useState(false);
   const [currentReceita, setCurrentReceita] = useState<Receita | null>(null);
+  const [lastParams, setLastParams] = useState<any>(null);
 
   const mapSupabaseReceitaToReceita = (sbReceita: any): Receita => ({
     _id: sbReceita.id,
     userId: sbReceita.user_id,
     categoriaId: sbReceita.categorias ? {
       _id: sbReceita.categorias.id,
-      userId: sbReceita.user_id, // Assuming same user
+      userId: sbReceita.user_id,
       nome: sbReceita.categorias.nome,
-      tipo: 'receita', // Inferred
+      tipo: 'receita',
       cor: sbReceita.categorias.cor,
       icone: sbReceita.categorias.icone,
-      ativa: true, // Default
-      createdAt: '', // Not needed for display usually
+      ativa: true,
+      createdAt: '',
       updatedAt: ''
     } : sbReceita.categoria_id,
     bancoId: sbReceita.bancos ? {
       _id: sbReceita.bancos.id,
       userId: sbReceita.user_id,
       nome: sbReceita.bancos.nome,
-      tipo: 'conta_corrente', // Default
+      tipo: 'conta_corrente',
       saldoInicial: 0,
       saldoAtual: 0,
       ativo: true,
@@ -60,6 +61,7 @@ export const useReceitas = () => {
     if (!user) return;
     
     setLoading(true);
+    setLastParams(params);
     try {
       const { data, count } = await receitaService.getReceitas(params);
       setReceitas(data.map(mapSupabaseReceitaToReceita));
@@ -72,13 +74,21 @@ export const useReceitas = () => {
     }
   }, [user]);
 
+  const refresh = useCallback(async () => {
+    const paramsToUse = lastParams || {
+      mes: new Date().getMonth() + 1,
+      ano: new Date().getFullYear()
+    };
+    await fetchReceitas(paramsToUse);
+  }, [fetchReceitas, lastParams]);
+
   const createReceita = async (data: ReceitaForm) => {
     if (!user) return;
     
     setLoading(true);
     try {
       await receitaService.createReceita(data, user.id);
-      // Refresh logic will be handled by the component calling fetchReceitas
+      await refresh();
       toast.success('Receita criada com sucesso');
     } catch (error) {
       console.error('Erro ao criar receita:', error);
@@ -93,6 +103,7 @@ export const useReceitas = () => {
     setLoading(true);
     try {
       await receitaService.updateReceita(id, data);
+      await refresh();
       toast.success('Receita atualizada com sucesso');
     } catch (error) {
       console.error('Erro ao atualizar receita:', error);
@@ -107,6 +118,7 @@ export const useReceitas = () => {
     setLoading(true);
     try {
       await receitaService.deleteReceita(id);
+      await refresh();
       toast.success('Receita excluída com sucesso');
     } catch (error) {
       console.error('Erro ao excluir receita:', error);
@@ -126,6 +138,7 @@ export const useReceitas = () => {
     createReceita,
     updateReceita,
     deleteReceita,
-    setCurrentReceita
+    setCurrentReceita,
+    refresh
   };
 };

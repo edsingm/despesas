@@ -40,12 +40,19 @@ export const receitaService = {
       query = query.ilike('descricao', `%${params.busca}%`)
     }
 
-    if (params?.mes && params?.ano) {
+    if (params?.mes !== undefined && params?.ano !== undefined) {
+      // Usar lt (less than) do próximo mês para garantir que pegamos todo o último dia
       const startDate = `${params.ano}-${String(params.mes).padStart(2, '0')}-01`
-      const lastDay = new Date(params.ano, params.mes, 0).getDate()
-      const endDate = `${params.ano}-${String(params.mes).padStart(2, '0')}-${lastDay}`
       
-      query = query.gte('data', startDate).lte('data', endDate)
+      let endMonth = params.mes + 1
+      let endYear = params.ano
+      if (endMonth > 12) {
+        endMonth = 1
+        endYear++
+      }
+      const endDate = `${endYear}-${String(endMonth).padStart(2, '0')}-01`
+      
+      query = query.gte('data', startDate).lt('data', endDate)
     }
 
     if (params?.bancoId) {
@@ -92,6 +99,7 @@ export const receitaService = {
 
   createReceita: async (receitaData: ReceitaForm, userId: string) => {
     const novaReceita: ReceitaInsert = {
+      id: crypto.randomUUID(),
       user_id: userId,
       categoria_id: receitaData.categoriaId,
       banco_id: receitaData.bancoId,

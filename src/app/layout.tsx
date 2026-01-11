@@ -9,6 +9,9 @@ const inter = Inter({ subsets: ["latin"] });
 export const metadata: Metadata = {
   title: "Sistema de Despesas Pessoais",
   description: "Gerencie suas finanças de forma simples e eficiente",
+  icons: {
+    icon: "/favicon.svg",
+  },
 };
 
 export default function RootLayout({

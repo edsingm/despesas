@@ -38,6 +38,7 @@ export const cartaoService = {
 
   createCartao: async (cartaoData: CartaoForm, userId: string) => {
     const novoCartao: CartaoInsert = {
+      id: crypto.randomUUID(),
       user_id: userId,
       nome: cartaoData.nome,
       bandeira: cartaoData.bandeira,

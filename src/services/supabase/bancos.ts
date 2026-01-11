@@ -42,6 +42,7 @@ export const bancoService = {
 
   createBanco: async (bancoData: BancoForm, userId: string) => {
     const novoBanco: BancoInsert = {
+      id: crypto.randomUUID(),
       user_id: userId,
       nome: bancoData.nome,
       tipo: bancoData.tipo,

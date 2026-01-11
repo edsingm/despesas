@@ -3,7 +3,7 @@ import { CurrencyInput } from '@/components/ui/currency-input';
 import { X, Tag } from 'lucide-react';
 import { renderCategoryIcon } from '@/lib/categoryIcons';
 import { getLocalDateString, toLocalDateString } from '@/lib/dateUtils';
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -183,6 +183,11 @@ const ReceitaModal: React.FC<ReceitaModalProps> = ({
       <DialogContent className="sm:max-w-[600px] max-h-[90vh] overflow-y-auto">
         <DialogHeader>
           <DialogTitle>{getTitle()}</DialogTitle>
+          <DialogDescription>
+            {mode === 'view' 
+              ? 'Visualize os detalhes desta entrada financeira.' 
+              : 'Registre suas entradas para manter seu saldo atualizado.'}
+          </DialogDescription>
         </DialogHeader>
         
         <form onSubmit={handleSubmit} className="space-y-6 py-4">

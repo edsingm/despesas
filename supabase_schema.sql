@@ -28,7 +28,7 @@ CREATE TRIGGER on_auth_user_created
 
 -- Table: bancos
 CREATE TABLE IF NOT EXISTS bancos (
-    id TEXT PRIMARY KEY,
+    id TEXT PRIMARY KEY DEFAULT (gen_random_uuid())::text,
     user_id TEXT NOT NULL, -- FK removed to allow migration of legacy data. Update to UUID REFERENCES auth.users(id) after data migration.
     nome TEXT NOT NULL,
     tipo TEXT,
@@ -41,7 +41,7 @@ CREATE TABLE IF NOT EXISTS bancos (
 
 -- Table: cartoes
 CREATE TABLE IF NOT EXISTS cartoes (
-    id TEXT PRIMARY KEY,
+    id TEXT PRIMARY KEY DEFAULT (gen_random_uuid())::text,
     user_id TEXT NOT NULL, -- FK removed
     banco_id TEXT REFERENCES bancos(id) ON DELETE SET NULL,
     nome TEXT NOT NULL,
@@ -57,7 +57,7 @@ CREATE TABLE IF NOT EXISTS cartoes (
 
 -- Table: categorias
 CREATE TABLE IF NOT EXISTS categorias (
-    id TEXT PRIMARY KEY,
+    id TEXT PRIMARY KEY DEFAULT (gen_random_uuid())::text,
     user_id TEXT NOT NULL, -- FK removed
     nome TEXT NOT NULL,
     tipo TEXT CHECK (tipo IN ('receita', 'despesa')) NOT NULL,
@@ -70,7 +70,7 @@ CREATE TABLE IF NOT EXISTS categorias (
 
 -- Table: receitas
 CREATE TABLE IF NOT EXISTS receitas (
-    id TEXT PRIMARY KEY,
+    id TEXT PRIMARY KEY DEFAULT (gen_random_uuid())::text,
     user_id TEXT NOT NULL, -- FK removed
     categoria_id TEXT REFERENCES categorias(id) ON DELETE SET NULL,
     banco_id TEXT REFERENCES bancos(id) ON DELETE SET NULL,
@@ -87,7 +87,7 @@ CREATE TABLE IF NOT EXISTS receitas (
 
 -- Table: despesas
 CREATE TABLE IF NOT EXISTS despesas (
-    id TEXT PRIMARY KEY,
+    id TEXT PRIMARY KEY DEFAULT (gen_random_uuid())::text,
     user_id TEXT NOT NULL, -- FK removed
     categoria_id TEXT REFERENCES categorias(id) ON DELETE SET NULL,
     banco_id TEXT REFERENCES bancos(id) ON DELETE SET NULL,

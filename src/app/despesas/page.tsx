@@ -67,6 +67,7 @@ import {
   DialogContent,
   DialogHeader,
   DialogTitle,
+  DialogDescription,
 } from "@/components/ui/dialog"
 
 // Hooks Supabase
@@ -797,6 +798,9 @@ const DespesasContent: React.FC = () => {
         <DialogContent className="max-w-4xl max-h-[80vh] overflow-y-auto">
           <DialogHeader>
             <DialogTitle>Gerenciar Parcelas</DialogTitle>
+            <DialogDescription>
+              Visualize e marque as parcelas desta despesa como pagas ou pendentes.
+            </DialogDescription>
           </DialogHeader>
           {selectedDespesaParcelas && (
             <ParcelasManager 

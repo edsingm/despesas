@@ -19,6 +19,14 @@ export function getLocalDateString(): string {
  * @param isoDate - Data em formato ISO ou timestamp
  */
 export function toLocalDateString(isoDate: string | Date): string {
+  // Se for string, tentar extrair YYYY-MM-DD diretamente para evitar timezone shift
+  if (typeof isoDate === 'string') {
+    const match = isoDate.match(/^(\d{4})-(\d{2})-(\d{2})/);
+    if (match) {
+      return match[0]; // Retorna YYYY-MM-DD
+    }
+  }
+
   const date = typeof isoDate === 'string' ? new Date(isoDate) : isoDate;
   const year = date.getFullYear();
   const month = String(date.getMonth() + 1).padStart(2, '0');
@@ -33,15 +41,24 @@ export function toLocalDateString(isoDate: string | Date): string {
 export function formatDateBR(dateInput: string | Date): string {
   if (!dateInput) return '';
   
-  // Se já vier como YYYY-MM-DD, formatar diretamente
-  const inputStr = typeof dateInput === 'string' ? dateInput : dateInput.toISOString();
-  if (inputStr.match(/^\d{4}-\d{2}-\d{2}$/)) {
-    const [year, month, day] = inputStr.split('-');
+  // Se for Date, extrair componentes locais
+  if (dateInput instanceof Date) {
+    const year = dateInput.getFullYear();
+    const month = String(dateInput.getMonth() + 1).padStart(2, '0');
+    const day = String(dateInput.getDate()).padStart(2, '0');
     return `${day}/${month}/${year}`;
   }
 
-  // Para ISO strings ou Date, usar timezone explícito na formatação
-  const date = typeof dateInput === 'string' ? new Date(inputStr) : dateInput;
+  // Se for string, tentar extrair YYYY-MM-DD do início
+  // Isso funciona para '2026-01-11', '2026-01-11T10:00:00', '2026-01-11 10:00:00+00'
+  const match = dateInput.match(/^(\d{4})-(\d{2})-(\d{2})/);
+  if (match) {
+    const [_, year, month, day] = match;
+    return `${day}/${month}/${year}`;
+  }
+
+  // Fallback (ex: timestamp numérico ou formato não-ISO)
+  const date = new Date(dateInput);
   if (isNaN(date.getTime())) return '';
 
   return date.toLocaleDateString('pt-BR', {

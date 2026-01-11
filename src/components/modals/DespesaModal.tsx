@@ -3,7 +3,7 @@ import { CurrencyInput } from '@/components/ui/currency-input';
 import { CreditCard, X, Tag } from 'lucide-react';
 import { renderCategoryIcon } from '@/lib/categoryIcons';
 import { getLocalDateString, toLocalDateString } from '@/lib/dateUtils';
-import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { NumberInput } from "@/components/ui/number-input";
@@ -191,6 +191,11 @@ const DespesaModal: React.FC<DespesaModalProps> = ({
     } catch (error: any) {
       // Error toast is handled by parent/hook
       console.error('Erro ao salvar despesa:', error);
+      if (error.message) {
+        toast.error(`Erro: ${error.message}`);
+      } else if (error.error_description) {
+        toast.error(`Erro: ${error.error_description}`);
+      }
     }
   };
 
@@ -281,6 +286,9 @@ const DespesaModal: React.FC<DespesaModalProps> = ({
       <DialogContent className="sm:max-w-[800px] max-h-[90vh] overflow-y-auto">
         <DialogHeader>
           <DialogTitle>{getTitle()}</DialogTitle>
+          <DialogDescription>
+            Preencha os dados abaixo para {mode === 'create' ? 'criar uma nova' : 'editar a'} despesa.
+          </DialogDescription>
         </DialogHeader>
         
         <form onSubmit={handleSubmit} className="space-y-6 py-4">
