@@ -157,7 +157,7 @@ const Sidebar: React.FC<SidebarProps> = ({ isOpen, onToggle }) => {
         {/* Footer (Optional) */}
         <div className="p-4 border-t border-border/40">
           <div className="p-4 bg-muted/30 rounded-2xl border border-border/50 text-center">
-            <p className="text-[10px] font-bold text-muted-foreground uppercase tracking-widest">v2.0.0</p>
+            <p className="text-[10px] font-bold text-muted-foreground uppercase tracking-widest">v2.1.0</p>
           </div>
         </div>
       </div>
